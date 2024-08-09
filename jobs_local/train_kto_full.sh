@@ -1,0 +1,14 @@
+python scripts/train_kto.py \
+    --model_name_or_path=trl-lib/qwen1.5-1.8b-sft \
+    --per_device_train_batch_size 16 \
+    --num_train_epochs 1 \
+    --learning_rate 1e-5 \
+    --lr_scheduler_type=cosine \
+    --gradient_accumulation_steps 1 \
+    --logging_steps 10 \
+    --eval_steps 500 \
+    --output_dir=kto-aligned-model \
+    --warmup_ratio 0.1 \
+    --report_to wandb \
+    --bf16 \
+    --logging_first_step
