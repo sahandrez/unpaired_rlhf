@@ -48,8 +48,9 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     kto_args.output_dir += (
-        f"_{script_args.dataset_name}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    kto_args.run_name = kto_args.output_dir
 
     # Load a pretrained model
     logger.info("Loading the pretrained model...")
