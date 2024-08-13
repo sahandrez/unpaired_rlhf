@@ -16,12 +16,20 @@
 In general, the optimal configuration for KTO will be similar to that of DPO.
 """
 
+import time
+import logging
 from dataclasses import dataclass
 
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
 
 from trl import KTOConfig, KTOTrainer, ModelConfig, get_peft_config, setup_chat_format
+from utils import log_memory_usage
+
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 # Define and parse arguments.
@@ -32,20 +40,30 @@ class ScriptArguments:
     """
 
     dataset_name: str = "trl-lib/kto-mix-14k"
-    # dataset_name: str = "argilla/ultrafeedback-binarized-preferences-cleaned-kto"
 
 
 if __name__ == "__main__":
     parser = HfArgumentParser((ScriptArguments, KTOConfig, ModelConfig))
     script_args, kto_args, model_args = parser.parse_args_into_dataclasses()
 
+    # Add dataset name and a timestamp to the output directory
+    kto_args.output_dir += (
+        f"_{script_args.dataset_name}_{time.strftime('%Y%m%d_%H%M%S')}"
+    )
+
     # Load a pretrained model
+    logger.info("Loading the pretrained model...")
+    log_memory_usage(logger=logger)
     model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
-    )
+        model_args.model_name_or_path,
+        trust_remote_code=model_args.trust_remote_code,
+    ).to("cuda")
+    log_memory_usage(logger=logger)
     ref_model = AutoModelForCausalLM.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
-    )
+        model_args.model_name_or_path,
+        trust_remote_code=model_args.trust_remote_code,
+    ).to("cuda")
+    log_memory_usage(logger=logger)
 
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
@@ -58,7 +76,12 @@ if __name__ == "__main__":
         model, tokenizer = setup_chat_format(model, tokenizer)
 
     # Load the dataset
+    logger.info("Loading the dataset...")
     dataset = load_dataset(script_args.dataset_name)
+
+    # Split the dataset if necessary
+    if "test" not in dataset.keys():
+        dataset = dataset["train"].train_test_split(test_size=0.1, seed=42)
 
     # Apply chat template
     def format_dataset(example):
@@ -71,6 +94,7 @@ if __name__ == "__main__":
         return example
 
     formatted_dataset = dataset.map(format_dataset)
+    log_memory_usage(logger=logger)
 
     # Initialize the KTO trainer
     kto_trainer = KTOTrainer(
@@ -84,6 +108,7 @@ if __name__ == "__main__":
     )
 
     # Train and push the model to the Hub
+    logger.info("Starting training...")
     kto_trainer.train()
     kto_trainer.save_model(kto_args.output_dir)
     # kto_trainer.push_to_hub()

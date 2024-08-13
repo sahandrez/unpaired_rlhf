@@ -1,19 +1,25 @@
 python scripts/train_kto.py \
-    --model_name_or_path=trl-lib/qwen1.5-1.8b-sft \
-    --per_device_train_batch_size 8 \
-    --num_train_epochs 1 \
-    --learning_rate 1e-4 \
+    --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
+    --per_device_train_batch_size=4 \
+    --per_device_eval_batch_size=8 \
+    --num_train_epochs=1 \
+    --learning_rate=5.0e-6 \
     --lr_scheduler_type=cosine \
-    --gradient_accumulation_steps 1 \
-    --logging_steps 10 \
-    --eval_steps 500 \
-    --output_dir=logs/kto-aligned-model-lora \
-    --warmup_ratio 0.1 \
-    --report_to wandb \
+    --max_length=1024 \
+    --max_prompt_length=512 \
+    --optim=paged_adamw_32bit \
+    --gradient_accumulation_steps 4 \
+    --gradient_checkpointing \
+    --logging_steps=10 \
+    --eval_steps=100 \
+    --output_dir=logs/kto-zephyr-7b-sft-qlora \
+    --warmup_ratio=0.1 \
+    --report_to=wandb \
     --bf16 \
     --logging_first_step \
     --use_peft \
     --load_in_4bit \
-    --lora_target_modules=all-linear \
-    --lora_r=16 \
-    --lora_alpha=16
+    --lora_target_modules q_proj k_proj v_proj o_proj gate_proj up_proj down_proj \
+    --lora_r=128 \
+    --lora_alpha=128 \
+    --lora_dropout=0.05
