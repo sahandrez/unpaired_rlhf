@@ -1,19 +1,8 @@
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 In general, the optimal configuration for KTO will be similar to that of DPO.
+
+Script adapted from the Hugging Face Transformers library:
+https://github.com/huggingface/trl/blob/main/examples/scripts/kto.py
 """
 
 import time
@@ -24,7 +13,7 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
 
 from trl import KTOConfig, KTOTrainer, ModelConfig, get_peft_config, setup_chat_format
-from utils import log_memory_usage
+from utils import log_memory_usage, set_seed
 
 
 # Set up logging
@@ -48,8 +37,12 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     kto_args.output_dir += (
-        f"_{script_args.dataset_name}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    kto_args.run_name = kto_args.output_dir
+
+    # Set seed everywhere
+    set_seed(kto_args.seed)
 
     # Load a pretrained model
     logger.info("Loading the pretrained model...")
@@ -111,4 +104,14 @@ if __name__ == "__main__":
     logger.info("Starting training...")
     kto_trainer.train()
     kto_trainer.save_model(kto_args.output_dir)
-    # kto_trainer.push_to_hub()
+    if kto_args.push_to_hub:
+        kto_trainer.push_to_hub()
+    logger.info("Training complete.")
+
+    # Evaluate the model
+    logger.info("Evaluating the model...")
+    metrics = kto_trainer.evaluate()
+    metrics["eval_samples"] = len(formatted_dataset["test"])
+    kto_trainer.log_metrics("eval", metrics)
+    kto_trainer.save_metrics("eval", metrics)
+    logger.info("Evaluation complete.")
