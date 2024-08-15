@@ -28,7 +28,8 @@ class ScriptArguments:
     The arguments for the KTO training script.
     """
 
-    dataset_name: str = "trl-lib/kto-mix-14k"
+    # dataset_name: str = "trl-lib/kto-mix-14k"
+    dataset_name: str = "sahandrez/ultrafeedback_binarized_kto"
 
 
 if __name__ == "__main__":
@@ -71,10 +72,6 @@ if __name__ == "__main__":
     # Load the dataset
     logger.info("Loading the dataset...")
     dataset = load_dataset(script_args.dataset_name)
-
-    # Split the dataset if necessary
-    if "test" not in dataset.keys():
-        dataset = dataset["train"].train_test_split(test_size=0.1, seed=42)
 
     # Apply chat template
     def format_dataset(example):
