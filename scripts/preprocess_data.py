@@ -15,37 +15,54 @@ def convert_to_kto_format(batch: dict) -> dict:
     }
 
 
+def convert_prompt_to_chat_format(row: dict) -> dict:
+    row["prompt"] = [{"role": "user", "content": row["prompt"]}]
+    return row
+
+
+def remove_user_messages_in_completions(row: dict) -> dict:
+    row["completion"] = [
+        message for message in row["completion"] if message["role"] == "assistant"
+    ]
+    return row
+
+
 if __name__ == "__main__":
     dataset_name = "HuggingFaceH4/ultrafeedback_binarized"
 
     train_dataset = load_dataset(dataset_name, split="train_prefs")
     test_dataset = load_dataset(dataset_name, split="test_prefs")
+    
+    kto_dataset = DatasetDict({"train": train_dataset, "test": test_dataset})
 
     # Remove unused columns
-    train_dataset = train_dataset.remove_columns(
+    kto_dataset = kto_dataset.remove_columns(
         ["prompt_id", "messages", "score_chosen", "score_rejected"]
     )
-    test_dataset = test_dataset.remove_columns(
-        ["prompt_id", "messages", "score_chosen", "score_rejected"]
+
+    # Convert to chat format
+    kto_dataset = kto_dataset.map(
+        convert_prompt_to_chat_format,
+        batched=False,
+        num_proc=4,
     )
 
     # Convert to KTO format
-    kto_train_dataset = train_dataset.map(
+    kto_dataset = kto_dataset.map(
         convert_to_kto_format,
         batched=True,
         batch_size=1,
         num_proc=4,
-        remove_columns=train_dataset.column_names,
+        remove_columns=kto_dataset["train"].column_names,
     )
-    kto_test_dataset = test_dataset.map(
-        convert_to_kto_format,
-        batched=True,
-        batch_size=1,
+
+    # Remove user messages from completions
+    kto_dataset = kto_dataset.map(
+        remove_user_messages_in_completions,
+        batched=False,
         num_proc=4,
-        remove_columns=test_dataset.column_names,
     )
 
     # Save and push to the hub
-    kto_dataset = DatasetDict({"train": kto_train_dataset, "test": kto_test_dataset})
     kto_dataset.save_to_disk("ultrafeedback_binarized_kto")
     kto_dataset.push_to_hub("ultrafeedback_binarized_kto")

@@ -13,7 +13,7 @@ python scripts/train_kto.py \
     --gradient_accumulation_steps 4 \
     --gradient_checkpointing \
     --logging_steps=10 \
-    --eval_steps=100 \
+    --eval_steps=500 \
     --evaluation_strategy=steps \
     --output_dir=logs/kto-zephyr-7b-sft-qlora \
     --warmup_ratio=0.1 \
