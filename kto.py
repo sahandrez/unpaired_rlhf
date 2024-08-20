@@ -13,7 +13,7 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
 
 from trl import KTOConfig, KTOTrainer, ModelConfig, get_peft_config, setup_chat_format
-from utils import log_memory_usage, set_seed
+from unpaired_rlhf.utils import log_memory_usage, set_seed
 
 
 # Set up logging
