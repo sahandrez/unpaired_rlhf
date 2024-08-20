@@ -1,7 +1,7 @@
 """
-In general, the optimal configuration for KTO will be similar to that of DPO.
+Script to finetune an LLM with KTO.
 
-Script adapted from the Hugging Face Transformers library:
+Script adapted from the TRL library:
 https://github.com/huggingface/trl/blob/main/examples/scripts/kto.py
 """
 
@@ -13,7 +13,7 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
 
 from trl import KTOConfig, KTOTrainer, ModelConfig, get_peft_config, setup_chat_format
-from utils import log_memory_usage, set_seed
+from unpaired_rlhf.utils.runtime import log_memory_usage, set_seed
 
 
 # Set up logging
