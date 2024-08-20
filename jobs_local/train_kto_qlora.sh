@@ -1,3 +1,5 @@
+# Trains Zephyr 7B with KTO using QLoRA
+
 python kto.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
     --dataset_name=sahandrez/ultrafeedback_binarized_kto \
