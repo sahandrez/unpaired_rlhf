@@ -1,7 +1,7 @@
 """
-In general, the optimal configuration for KTO will be similar to that of DPO.
+Script to finetune an LLM with KTO.
 
-Script adapted from the Hugging Face Transformers library:
+Script adapted from the TRL library:
 https://github.com/huggingface/trl/blob/main/examples/scripts/kto.py
 """
 

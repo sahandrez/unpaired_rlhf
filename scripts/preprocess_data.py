@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     train_dataset = load_dataset(dataset_name, split="train_prefs")
     test_dataset = load_dataset(dataset_name, split="test_prefs")
-    
+
     kto_dataset = DatasetDict({"train": train_dataset, "test": test_dataset})
 
     # Remove unused columns
