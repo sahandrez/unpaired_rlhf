@@ -1,5 +1,5 @@
 """
-Script to preprocess the any preference dataset for the KTO training script.
+Script to preprocess any preference dataset for the KTO training script.
 """
 
 from datasets import load_dataset, DatasetDict

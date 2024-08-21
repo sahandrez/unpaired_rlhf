@@ -11,9 +11,9 @@ from dataclasses import dataclass
 
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, HfArgumentParser
-
 from trl import KTOConfig, KTOTrainer, ModelConfig, get_peft_config, setup_chat_format
-from unpaired_rlhf.utils.runtime import log_memory_usage, set_seed
+
+from unpaired_rlhf.utils.runtime import set_seed
 
 
 # Set up logging
@@ -26,9 +26,9 @@ logger = logging.getLogger(__name__)
 class ScriptArguments:
     """
     The arguments for the KTO training script.
+    This script also works with the "trl-lib/kto-mix-14k" dataset.
     """
 
-    # dataset_name: str = "trl-lib/kto-mix-14k"
     dataset_name: str = "sahandrez/ultrafeedback_binarized_kto"
 
 
@@ -47,17 +47,14 @@ if __name__ == "__main__":
 
     # Load a pretrained model
     logger.info("Loading the pretrained model...")
-    log_memory_usage(logger=logger)
     model = AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         trust_remote_code=model_args.trust_remote_code,
     ).to("cuda")
-    log_memory_usage(logger=logger)
     ref_model = AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         trust_remote_code=model_args.trust_remote_code,
     ).to("cuda")
-    log_memory_usage(logger=logger)
 
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
@@ -84,7 +81,6 @@ if __name__ == "__main__":
         return example
 
     formatted_dataset = dataset.map(format_dataset)
-    log_memory_usage(logger=logger)
 
     # Initialize the KTO trainer
     kto_trainer = KTOTrainer(

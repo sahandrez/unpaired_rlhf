@@ -3,6 +3,7 @@
 python kto.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
     --dataset_name=sahandrez/ultrafeedback_binarized_kto \
+    --output_dir=logs/kto-zephyr-7b-sft-qlora \
     --torch_dtype=bfloat16 \
     --attn_implementation=flash_attention_2 \
     --per_device_train_batch_size=4 \
@@ -18,7 +19,6 @@ python kto.py \
     --logging_steps=10 \
     --eval_steps=500 \
     --evaluation_strategy=steps \
-    --output_dir=logs/kto-zephyr-7b-sft-qlora \
     --warmup_ratio=0.1 \
     --report_to=wandb \
     --bf16 \
