@@ -1,5 +1,12 @@
 """
 Script to preprocess any preference dataset for the KTO training script.
+
+The KTO format should have the following columns:
+- prompt: list of prompts
+- completion: list of completions
+- label: list of labels
+
+More details: https://huggingface.co/docs/trl/kto_trainer
 """
 
 from datasets import load_dataset, DatasetDict

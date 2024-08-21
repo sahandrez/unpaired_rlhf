@@ -23,6 +23,7 @@ from trl import (
     ModelConfig,
     RewardConfig,
     RewardTrainer,
+    setup_chat_format,
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
@@ -78,12 +79,20 @@ if __name__ == "__main__":
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
     )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_config.model_name_or_path, use_fast=True
-    )
     model = AutoModelForSequenceClassification.from_pretrained(
         model_config.model_name_or_path, num_labels=1, **model_kwargs
     )
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_config.model_name_or_path, use_fast=True
+    )
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    if model.config.pad_token_id is None:
+        model.config.pad_token_id = model.config.eos_token_id
+
+    # If we are aligning a base model, we use ChatML as the default template
+    if tokenizer.chat_template is None:
+        model, tokenizer = setup_chat_format(model, tokenizer)
 
     if model_config.lora_task_type != "SEQ_CLS":
         warnings.warn(

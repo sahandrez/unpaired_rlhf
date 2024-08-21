@@ -8,17 +8,17 @@ python kto.py \
     --attn_implementation=flash_attention_2 \
     --per_device_train_batch_size=4 \
     --per_device_eval_batch_size=8 \
+    --gradient_accumulation_steps 4 \
     --num_train_epochs=1 \
     --learning_rate=5.0e-6 \
     --lr_scheduler_type=cosine \
     --max_length=1024 \
     --max_prompt_length=512 \
     --optim=paged_adamw_32bit \
-    --gradient_accumulation_steps 4 \
     --gradient_checkpointing \
     --logging_steps=10 \
-    --eval_steps=500 \
     --evaluation_strategy=steps \
+    --eval_steps=500 \
     --warmup_ratio=0.1 \
     --report_to=wandb \
     --bf16 \
