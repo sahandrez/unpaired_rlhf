@@ -2,7 +2,7 @@
 Script to finetune an LLM with KTO.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/main/examples/scripts/kto.py
+https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/kto.py
 """
 
 import time

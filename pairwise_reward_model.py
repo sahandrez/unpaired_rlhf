@@ -2,7 +2,7 @@
 Script to train a pairwise reward model.
 
 Scipt adapted from the TRL library:
-https://github.com/huggingface/trl/blob/main/examples/scripts/reward_modeling.py
+https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.py
 """
 
 import warnings
