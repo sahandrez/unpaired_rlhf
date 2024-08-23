@@ -2,10 +2,19 @@
 Utilities for data processing.
 """
 
+
 def convert_to_kto_format(batch: dict) -> dict:
     return {
         "prompt": [prompt for prompt in batch["prompt"]]
         + [prompt for prompt in batch["prompt"]],
+        "completion": [chosen for chosen in batch["chosen"]]
+        + [rejected for rejected in batch["rejected"]],
+        "label": [True for _ in batch["chosen"]] + [False for _ in batch["rejected"]],
+    }
+
+
+def convert_to_unpaired_reward_format(batch: dict) -> dict:
+    return {
         "completion": [chosen for chosen in batch["chosen"]]
         + [rejected for rejected in batch["rejected"]],
         "label": [True for _ in batch["chosen"]] + [False for _ in batch["rejected"]],
