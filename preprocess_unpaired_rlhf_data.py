@@ -19,7 +19,7 @@ def convert_to_unpaired_reward_format(batch: dict) -> dict:
     return {
         "completion": [chosen for chosen in batch["chosen"]]
         + [rejected for rejected in batch["rejected"]],
-        "labels": [1 for _ in batch["chosen"]] + [0 for _ in batch["rejected"]],
+        "label": [1 for _ in batch["chosen"]] + [0 for _ in batch["rejected"]],
     }
 
 
