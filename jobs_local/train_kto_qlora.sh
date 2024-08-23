@@ -2,7 +2,7 @@
 
 python kto.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name=sahandrez/ultrafeedback_binarized_kto \
+    --dataset_name=sahandrez/ultrafeedback_binarized_unpaired \
     --output_dir=logs/kto-zephyr-7b-sft-qlora \
     --torch_dtype=bfloat16 \
     --attn_implementation=flash_attention_2 \
