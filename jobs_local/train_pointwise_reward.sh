@@ -1,9 +1,9 @@
 # Trains a pairwise reward model
 
-python pairwise_reward_model.py \
+python pointwise_reward_model.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name=Anthropic/hh-rlhf \
-    --output_dir=logs/pairwise-reward-zephyr-7b-sft-qlora \
+    --dataset_name=sahandrez/hh_rlhf_unpaired \
+    --output_dir=logs/pointwise-reward-zephyr-7b-sft-qlora \
     --torch_dtype=bfloat16 \
     --attn_implementation=flash_attention_2 \
     --per_device_train_batch_size=32 \
@@ -17,7 +17,7 @@ python pairwise_reward_model.py \
     --gradient_checkpointing \
     --logging_steps=10 \
     --eval_strategy=steps \
-    --eval_steps=500 \
+    --eval_steps=10 \
     --load_best_model_at_end \
     --report_to=wandb \
     --push_to_hub \

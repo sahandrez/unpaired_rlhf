@@ -1,5 +1,5 @@
 """
-Script to train a pairwise reward model.
+Script to train a pointwise reward model.
 
 Scipt adapted from the TRL library:
 https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.py
@@ -8,21 +8,24 @@ https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.
 import warnings
 import logging
 import time
+import numpy as np
 from dataclasses import dataclass
 
 import torch
 from datasets import load_dataset
 from tqdm import tqdm
 
+import evaluate
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     HfArgumentParser,
+    Trainer,
+    DataCollatorWithPadding,
 )
 from trl import (
     ModelConfig,
     RewardConfig,
-    RewardTrainer,
     setup_chat_format,
     get_kbit_device_map,
     get_peft_config,
@@ -30,6 +33,7 @@ from trl import (
 )
 
 from unpaired_rlhf.utils.runtime import set_seed
+from unpaired_rlhf.trainer.utils import wrap_peft
 
 
 tqdm.pandas()
@@ -46,7 +50,7 @@ class ScriptArguments:
     The arguments for the pairwise reward training script.
     """
 
-    dataset_name: str = "Anthropic/hh-rlhf"
+    dataset_name: str = "sahandrez/hh_rlhf_unpaired"
 
 
 if __name__ == "__main__":
@@ -62,6 +66,10 @@ if __name__ == "__main__":
 
     # Set seed everywhere
     set_seed(reward_config.seed)
+
+    # Define label2id and id2label
+    id2label = {0: "BAD", 1: "GOOD"}
+    label2id = {v: k for k, v in id2label.items()}
 
     ################
     # Model & Tokenizer
@@ -80,7 +88,11 @@ if __name__ == "__main__":
         quantization_config=quantization_config,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        model_config.model_name_or_path, num_labels=1, **model_kwargs
+        model_config.model_name_or_path,
+        num_labels=2,
+        id2label=id2label,
+        label2id=label2id,
+        **model_kwargs,
     )
     tokenizer = AutoTokenizer.from_pretrained(
         model_config.model_name_or_path, use_fast=True
@@ -100,58 +112,53 @@ if __name__ == "__main__":
             " Make sure to pass --lora_task_type SEQ_CLS when using this script."
         )
 
+    # Get the PEFT model
+    model = wrap_peft(model, reward_config, get_peft_config(model_config))
+
     ################
     # Dataset
     ################
     logger.info("Loading the dataset...")
     raw_datasets = load_dataset(script_args.dataset_name)
     
-    # Tokenize chosen/rejected pairs of inputs
+    # Tokenize completions inputs
     def preprocess_function(examples):
-        new_examples = {
-            "input_ids_chosen": [],
-            "attention_mask_chosen": [],
-            "input_ids_rejected": [],
-            "attention_mask_rejected": [],
-        }
-        for chosen, rejected in zip(examples["chosen"], examples["rejected"]):
-            tokenized_chosen = tokenizer(chosen)
-            tokenized_rejected = tokenizer(rejected)
-
-            new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
-            new_examples["attention_mask_chosen"].append(
-                tokenized_chosen["attention_mask"]
-            )
-            new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
-            new_examples["attention_mask_rejected"].append(
-                tokenized_rejected["attention_mask"]
-            )
-
-        return new_examples
+        return tokenizer(examples["completion"], truncation=True)
 
     # Preprocess the dataset and filter out examples that are longer than args.max_length
     raw_datasets = raw_datasets.map(
         preprocess_function,
         batched=True,
-        num_proc=4,
+        remove_columns=["completion"],
     )
+
     raw_datasets = raw_datasets.filter(
-        lambda x: len(x["input_ids_chosen"]) <= reward_config.max_length
-        and len(x["input_ids_rejected"]) <= reward_config.max_length
+        lambda x: len(x["input_ids"]) <= reward_config.max_length
     )
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
+    
+    # Define the data collator
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
     ################
     # Training
     ################
-    trainer = RewardTrainer(
+    # Evaluation metric
+    metric = evaluate.load("accuracy")
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        return metric.compute(predictions=predictions, references=labels)
+
+    trainer = Trainer(
         model=model,
         tokenizer=tokenizer,
         args=reward_config,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        peft_config=get_peft_config(model_config),
+        data_collator=data_collator,
+        compute_metrics=compute_metrics,
     )
 
     # Train and push the model to the Hub

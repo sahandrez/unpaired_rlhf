@@ -21,6 +21,7 @@ python kto.py \
     --eval_steps=500 \
     --warmup_ratio=0.1 \
     --report_to=wandb \
+    --push_to_hub \
     --bf16 \
     --logging_first_step \
     --use_peft \
