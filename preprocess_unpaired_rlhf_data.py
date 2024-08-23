@@ -4,12 +4,35 @@ Utilities to preprocess preference datasets to an unpaired format.
 
 from datasets import load_dataset, DatasetDict
 
-from unpaired_rlhf.utils.data import (
-    convert_prompt_to_chat_format,
-    convert_to_kto_format,
-    convert_to_unpaired_reward_format,
-    remove_user_messages_in_completions,
-)
+
+def convert_to_kto_format(batch: dict) -> dict:
+    return {
+        "prompt": [prompt for prompt in batch["prompt"]]
+        + [prompt for prompt in batch["prompt"]],
+        "completion": [chosen for chosen in batch["chosen"]]
+        + [rejected for rejected in batch["rejected"]],
+        "label": [True for _ in batch["chosen"]] + [False for _ in batch["rejected"]],
+    }
+
+
+def convert_to_unpaired_reward_format(batch: dict) -> dict:
+    return {
+        "completion": [chosen for chosen in batch["chosen"]]
+        + [rejected for rejected in batch["rejected"]],
+        "labels": [1 for _ in batch["chosen"]] + [0 for _ in batch["rejected"]],
+    }
+
+
+def convert_prompt_to_chat_format(row: dict) -> dict:
+    row["prompt"] = [{"role": "user", "content": row["prompt"]}]
+    return row
+
+
+def remove_user_messages_in_completions(row: dict) -> dict:
+    row["completion"] = [
+        message for message in row["completion"] if message["role"] == "assistant"
+    ]
+    return row
 
 
 def create_unpaired_rlhf_dataset(dataset_name: str, train_split: str, test_split: str):
@@ -38,7 +61,6 @@ def create_unpaired_rlhf_dataset(dataset_name: str, train_split: str, test_split
     unpaired_dataset = unpaired_dataset.map(
         convert_prompt_to_chat_format,
         batched=False,
-        num_proc=4,
     )
 
     # Convert to KTO format
@@ -46,7 +68,6 @@ def create_unpaired_rlhf_dataset(dataset_name: str, train_split: str, test_split
         convert_to_kto_format,
         batched=True,
         batch_size=1,
-        num_proc=4,
         remove_columns=unpaired_dataset["train"].column_names,
     )
 
@@ -54,11 +75,12 @@ def create_unpaired_rlhf_dataset(dataset_name: str, train_split: str, test_split
     unpaired_dataset = unpaired_dataset.map(
         remove_user_messages_in_completions,
         batched=False,
-        num_proc=4,
     )
 
     # Save and push to the hub
     unpaired_dataset_name = dataset_name.split("/")[-1] + "_unpaired"
+    unpaired_dataset_name = unpaired_dataset_name.replace("-", "_")
+
     print(f"Pushing the dataset to the hub: {unpaired_dataset_name}")
     unpaired_dataset.push_to_hub(unpaired_dataset_name)
 
@@ -84,12 +106,14 @@ def create_unpaired_reward_dataset(
         convert_to_unpaired_reward_format,
         batched=True,
         batch_size=1,
-        num_proc=4,
+        num_proc=1,
         remove_columns=unpaired_dataset["train"].column_names,
     )
 
     # Save and push to the hub
     unpaired_dataset_name = dataset_name.split("/")[-1] + "_unpaired"
+    unpaired_dataset_name = unpaired_dataset_name.replace("-", "_")
+
     print(f"Pushing the dataset to the hub: {unpaired_dataset_name}")
     unpaired_dataset.push_to_hub(unpaired_dataset_name)
 
