@@ -17,7 +17,7 @@ python pointwise_reward_model.py \
     --gradient_checkpointing \
     --logging_steps=10 \
     --eval_strategy=steps \
-    --eval_steps=10 \
+    --eval_steps=500 \
     --load_best_model_at_end \
     --report_to=wandb \
     --push_to_hub \
