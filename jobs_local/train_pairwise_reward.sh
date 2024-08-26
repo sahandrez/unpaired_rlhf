@@ -2,7 +2,9 @@
 
 python pairwise_reward_model.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name=Anthropic/hh-rlhf \
+    --dataset_name=HuggingFaceH4/ultrafeedback_binarized \
+    --train_split="train_prefs" \
+    --test_split="test_prefs" \
     --output_dir=logs/pairwise-reward-zephyr-7b-sft-qlora \
     --torch_dtype=bfloat16 \
     --attn_implementation=flash_attention_2 \
@@ -17,7 +19,7 @@ python pairwise_reward_model.py \
     --gradient_checkpointing \
     --logging_steps=10 \
     --eval_strategy=steps \
-    --eval_steps=500 \
+    --eval_steps=100 \
     --load_best_model_at_end \
     --report_to=wandb \
     --push_to_hub \

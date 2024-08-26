@@ -2,7 +2,9 @@
 
 python pointwise_reward_model.py \
     --model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name=sahandrez/hh_rlhf_unpaired \
+    --dataset_name=sahandrez/ultrafeedback_binarized_unpaired \
+    --train_split="train" \
+    --test_split="test" \
     --output_dir=logs/pointwise-reward-zephyr-7b-sft-qlora \
     --torch_dtype=bfloat16 \
     --attn_implementation=flash_attention_2 \
@@ -17,7 +19,7 @@ python pointwise_reward_model.py \
     --gradient_checkpointing \
     --logging_steps=10 \
     --eval_strategy=steps \
-    --eval_steps=500 \
+    --eval_steps=100 \
     --load_best_model_at_end \
     --report_to=wandb \
     --push_to_hub \

@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from tqdm import tqdm
 
 from transformers import (
@@ -46,7 +46,9 @@ class ScriptArguments:
     The arguments for the pairwise reward training script.
     """
 
-    dataset_name: str = "Anthropic/hh-rlhf"
+    dataset_name: str = "HuggingFaceH4/ultrafeedback_binarized"
+    train_split: str = "train_prefs"
+    test_split: str = "test_prefs"
 
 
 if __name__ == "__main__":
@@ -105,7 +107,28 @@ if __name__ == "__main__":
     ################
     logger.info("Loading the dataset...")
     raw_datasets = load_dataset(script_args.dataset_name)
-    
+    raw_datasets = DatasetDict(
+        {
+            "train": raw_datasets[script_args.train_split],
+            "test": raw_datasets[script_args.test_split],
+        }
+    )
+
+    # Apply chat template if the dataset requires it
+    if isinstance(raw_datasets["train"].features["chosen"], list):
+        logger.info("Applying chat template to the dataset...")
+
+        def format_dataset(example):
+            example["chosen"] = tokenizer.apply_chat_template(
+                example["chosen"], tokenize=False
+            )
+            example["rejected"] = tokenizer.apply_chat_template(
+                example["rejected"], tokenize=False
+            )
+            return example
+
+        raw_datasets = raw_datasets.map(format_dataset)
+
     # Tokenize chosen/rejected pairs of inputs
     def preprocess_function(examples):
         new_examples = {

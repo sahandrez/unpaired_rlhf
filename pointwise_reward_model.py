@@ -12,7 +12,7 @@ import numpy as np
 from dataclasses import dataclass
 
 import torch
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict, Value
 from tqdm import tqdm
 
 import evaluate
@@ -50,7 +50,9 @@ class ScriptArguments:
     The arguments for the pairwise reward training script.
     """
 
-    dataset_name: str = "sahandrez/hh_rlhf_unpaired"
+    dataset_name: str = "sahandrez/ultrafeedback_binarized_unpaired"
+    train_split: str = "train"
+    test_split: str = "test"
 
 
 if __name__ == "__main__":
@@ -120,7 +122,49 @@ if __name__ == "__main__":
     ################
     logger.info("Loading the dataset...")
     raw_datasets = load_dataset(script_args.dataset_name)
-    
+
+    raw_datasets = DatasetDict(
+        {
+            "train": raw_datasets[script_args.train_split],
+            "test": raw_datasets[script_args.test_split],
+        }
+    )
+
+    # Apply chat template if the dataset requires it
+    if isinstance(raw_datasets["train"].features["completion"], list):
+        logger.info("Applying chat template to the dataset...")
+
+        def concat_prompt_completion(example):
+            return {"completion": example["prompt"] + example["completion"]}
+
+        def format_dataset(example):
+            example["completion"] = tokenizer.apply_chat_template(
+                example["completion"], tokenize=False
+            )
+            if "prompt" in example:
+                example["prompt"] = tokenizer.apply_chat_template(
+                    example["prompt"], tokenize=False
+                )
+            return example
+
+        # Concat the prompt and completion if the dataset has a prompt column
+        if "prompt" in raw_datasets["train"].features:
+            raw_datasets = raw_datasets.map(
+                concat_prompt_completion, remove_columns=["prompt"], batched=False
+            )
+
+        raw_datasets = raw_datasets.map(format_dataset)
+
+    # Convert bool labels to int
+    if raw_datasets["train"].features["label"].dtype == "bool":
+        raw_datasets = raw_datasets.cast_column("label", Value("int64"))
+
+        def convert_bool_to_int(example):
+            example["label"] = int(example["label"])
+            return example
+
+        raw_datasets = raw_datasets.map(convert_bool_to_int)
+
     # Tokenize completions inputs
     def preprocess_function(examples):
         return tokenizer(examples["completion"], truncation=True)
@@ -137,7 +181,7 @@ if __name__ == "__main__":
     )
     train_dataset = raw_datasets["train"]
     eval_dataset = raw_datasets["test"]
-    
+
     # Define the data collator
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
@@ -146,6 +190,7 @@ if __name__ == "__main__":
     ################
     # Evaluation metric
     metric = evaluate.load("accuracy")
+
     def compute_metrics(eval_pred):
         logits, labels = eval_pred
         predictions = np.argmax(logits, axis=-1)
