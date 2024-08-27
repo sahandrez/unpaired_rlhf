@@ -1,11 +1,16 @@
 # Unpaired RLHF
 
 ## Usages
-* Train Zephyr-7B with KTO on a single A100 GPU with QLoRA: 
+* All scripts can be run on a single A100 GPU with QLoRA: 
+* Train Zephyr-7B with KTO:
 ```bash
 bash jobs_local/train_kto_qlora.sh
 ```
-* Preprocess the pairwise UltraFeedback dataset to an unpaired dataset: 
+* Train Zephyr-7B as a pairwise reward model:
 ```bash
-python preprocess_unpaired_rlhf_data.py
+bash jobs_local/train_pairwise_reward.sh
+```
+* Train Zephyr-7B as a pointwise reward model:
+```bash
+bash jobs_local/train_pointwise_reward.sh
 ```
