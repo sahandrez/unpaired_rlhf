@@ -1,11 +1,12 @@
-# Trains a pairwise reward model
+# Trains a pairwise reward model with QLoRA
+# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
 
-python pointwise_reward_model.py \
+python pairwise_reward_model.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
-    --train_split "train" \
-    --test_split "test" \
-    --output_dir logs/pointwise-reward-zephyr-7b-sft-qlora \
+    --dataset_name HuggingFaceH4/ultrafeedback_binarized \
+    --train_split "train_prefs" \
+    --test_split "test_prefs" \
+    --output_dir logs/pairwise-reward-zephyr-7b-sft-qlora \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \
@@ -13,7 +14,7 @@ python pointwise_reward_model.py \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
-    --max_length 512 \
+    --max_length 1024 \
     --remove_unused_columns False \
     --optim adamw_torch \
     --gradient_checkpointing \

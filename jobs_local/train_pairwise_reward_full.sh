@@ -1,11 +1,12 @@
 # Trains a pairwise reward model
+# Tested with EleutherAI/pythia-1b-deduped on a single A100 GPU
 
 python pairwise_reward_model.py \
-    --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
+    --model_name_or_path EleutherAI/pythia-1b-deduped \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --train_split "train_prefs" \
     --test_split "test_prefs" \
-    --output_dir logs/pairwise-reward-zephyr-7b-sft-qlora \
+    --output_dir logs/pairwise-reward-pythia-1b-deduped \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \
@@ -13,7 +14,7 @@ python pairwise_reward_model.py \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
-    --max_length 512 \
+    --max_length 1024 \
     --remove_unused_columns False \
     --optim adamw_torch \
     --gradient_checkpointing \
@@ -25,10 +26,3 @@ python pairwise_reward_model.py \
     --push_to_hub \
     --bf16 \
     --logging_first_step \
-    --use_peft \
-    --load_in_4bit \
-    --lora_task_type SEQ_CLS \
-    --lora_r 128 \
-    --lora_alpha 128 \
-    --lora_dropout 0.05 \
-    --lora_target_modules q_proj k_proj v_proj o_proj gate_proj up_proj down_proj
