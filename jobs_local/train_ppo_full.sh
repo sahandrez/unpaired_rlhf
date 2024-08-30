@@ -11,11 +11,11 @@ python ppo.py \
     --learning_rate 3e-6 \
     --attn_implementation flash_attention_2 \
     --torch_dtype bfloat16 \
-    --per_device_train_batch_size 1 \
+    --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 16 \
     --gradient_checkpointing \
-    --total_episodes 10000 \
-    --local_rollout_forward_batch_size 1 \
+    --total_episodes 1000000 \
+    --local_rollout_forward_batch_size 4 \
     --non_eos_penalty \
     --report_to wandb \
     --push_to_hub \

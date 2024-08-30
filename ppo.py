@@ -41,14 +41,14 @@ if __name__ == "__main__":
     script_args, config, model_config = parser.parse_args_into_dataclasses()
     # remove output_dir if exists
     shutil.rmtree(config.output_dir, ignore_errors=True)
-    
+
     # Add dataset name and a timestamp to the output directory
     config.output_dir += (
         f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
     )
     config.run_name = config.output_dir
-    
-    # PPOv2 Trainer does not suppor run_name 
+
+    # PPOv2 Trainer does not suppor run_name
     if "wandb" in config.report_to:
         wandb.init(name=config.run_name)
 
@@ -111,7 +111,6 @@ if __name__ == "__main__":
             outputs = tokenizer(
                 element[dataset_text_field],
                 padding=False,
-                truncation=True,
             )
             return {"input_ids": outputs["input_ids"]}
 
