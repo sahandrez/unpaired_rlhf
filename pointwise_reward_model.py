@@ -3,6 +3,7 @@ Script to train a pointwise reward model.
 
 Scipt adapted from the TRL library:
 https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.py
+https://huggingface.co/docs/transformers/en/tasks/sequence_classification
 """
 
 import warnings
@@ -88,6 +89,7 @@ if __name__ == "__main__":
         trust_remote_code=model_config.trust_remote_code,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
+        use_cache=False,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
         model_config.model_name_or_path,
@@ -115,7 +117,8 @@ if __name__ == "__main__":
         )
 
     # Get the PEFT model
-    model = wrap_peft(model, reward_config, get_peft_config(model_config))
+    if model_config.use_peft:
+        model = wrap_peft(model, reward_config, get_peft_config(model_config))
 
     ################
     # Dataset

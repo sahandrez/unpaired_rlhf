@@ -30,6 +30,8 @@ class ScriptArguments:
     """
 
     dataset_name: str = "sahandrez/ultrafeedback_binarized_kto"
+    train_split: str = "train"
+    test_split: str = "test"
 
 
 if __name__ == "__main__":
@@ -87,8 +89,8 @@ if __name__ == "__main__":
         model,
         ref_model,
         args=kto_args,
-        train_dataset=formatted_dataset["train"],
-        eval_dataset=formatted_dataset["test"],
+        train_dataset=formatted_dataset[script_args.train_split],
+        eval_dataset=formatted_dataset[script_args.test_split],
         tokenizer=tokenizer,
         peft_config=get_peft_config(model_args),
     )
