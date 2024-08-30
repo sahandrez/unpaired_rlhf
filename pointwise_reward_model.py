@@ -3,6 +3,7 @@ Script to train a pointwise reward model.
 
 Scipt adapted from the TRL library:
 https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.py
+https://huggingface.co/docs/transformers/en/tasks/sequence_classification
 """
 
 import warnings
