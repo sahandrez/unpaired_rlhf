@@ -1,0 +1,88 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+
+
+        // added
+        {
+            "name": "train_kto",
+            "type": "debugpy",
+            "request": "launch",
+            "env": {"CUDA_VISIBLE_DEVICES": "0",
+                    "WANDB_API_KEY":"9ec53be89dd54c809ecb63fb1b651d7b2f3dfb11"},
+            "program": "/home/v-sarnob/code/unpaired_rlhf/kto.py",
+            "args": [
+                "--model_name_or_path=alignment-handbook/zephyr-7b-sft-qlora",
+                "--dataset_name=sahandrez/ultrafeedback_binarized_kto",
+                "--torch_dtype=bfloat16",
+                "--attn_implementation=flash_attention_2",
+                "--per_device_train_batch_size=4",
+                "--per_device_eval_batch_size=8",
+                "--num_train_epochs=1",
+                "--learning_rate=5.0e-6",
+                "--lr_scheduler_type=cosine",
+                "--max_length=1024",
+                "--max_prompt_length=512",
+                "--optim=paged_adamw_32bit",
+                "--gradient_accumulation_steps=4",
+                "--gradient_checkpointing=True",
+                "--logging_steps=10",
+                "--eval_steps=500",
+                "--evaluation_strategy=steps",
+                "--output_dir=logs/kto-zephyr-7b-sft-qlora",
+                "--warmup_ratio=0.1",
+                "--report_to=wandb",
+                "--bf16=True",
+                "--logging_first_step=True",
+                "--use_peft=True",
+                "--load_in_4bit=True",
+                "--lora_r=128",
+                "--lora_alpha=128",
+                "--lora_dropout=0.05",
+                "--lora_target_modules=q_proj k_proj v_proj o_proj gate_proj up_proj down_proj"
+
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+
+        {
+            "name": "llm_judge",
+            "type": "debugpy",
+            "request": "launch",
+            "env": {"CUDA_VISIBLE_DEVICES": "0",
+                    "WANDB_API_KEY":"9ec53be89dd54c809ecb63fb1b651d7b2f3dfb11"},
+            "program": "/home/v-sarnob/code/unpaired_rlhf/llm_judge.py",
+
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+
+        
+        {
+            "name": "temp",
+            "type": "debugpy",
+            "request": "launch",
+            "env": {"CUDA_VISIBLE_DEVICES": "2",
+                    "WANDB_API_KEY":"9ec53be89dd54c809ecb63fb1b651d7b2f3dfb11"},
+            "program": "/home/v-sarnob/code/unpaired_rlhf/temp.py",
+
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+
+       
+
+
+    ]
+}
