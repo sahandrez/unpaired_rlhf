@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     # Tokenize completions inputs
     def preprocess_function(examples):
-        return tokenizer(examples["completion"], truncation=True)
+        return tokenizer(examples["completion"], padding=False, truncation=True)
 
     # Preprocess the dataset and filter out examples that are longer than args.max_length
     raw_datasets = raw_datasets.map(
