@@ -1,8 +1,8 @@
 """
-Script to finetune an LLM with PPOv2.
+Script to finetune an LLM with RLOO.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/ppo/ppo.py
+https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/rloo/rloo.py
 """
 
 import logging
@@ -19,7 +19,7 @@ from transformers import (
 )
 
 from trl import ModelConfig, get_peft_config
-from trl.trainer.ppov2_trainer import PPOv2Config, PPOv2Trainer
+from trl.trainer.rloo_trainer import RLOOConfig, RLOOTrainer
 from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
 
 from unpaired_rlhf.utils.runtime import set_seed, log_memory_usage
@@ -43,7 +43,7 @@ class ScriptArguments:
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((ScriptArguments, PPOv2Config, ModelConfig))
+    parser = HfArgumentParser((ScriptArguments, RLOOConfig, ModelConfig))
     script_args, config, model_config = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     )
     config.run_name = config.output_dir
 
-    # PPOv2 Trainer does not suppor run_name
+    # RLOO Trainer does not suppor run_name
     if "wandb" in config.report_to:
         wandb.init(name=config.run_name)
 
@@ -65,23 +65,19 @@ if __name__ == "__main__":
     logger.info("Loading the pretrained models...")
 
     torch_dtype = model_config.torch_dtype
-    value_model = AutoModelForSequenceClassification.from_pretrained(
-        config.reward_model_path, num_labels=1, torch_dtype=torch_dtype
-    )
     reward_model = AutoModelForSequenceClassification.from_pretrained(
         config.reward_model_path, num_labels=1, torch_dtype=torch_dtype
     )
-    policy = AutoModelForCausalLM.from_pretrained(
+    ref_policy = AutoModelForCausalLM.from_pretrained(
         config.sft_model_path, torch_dtype=torch_dtype
     )
-    ref_policy = AutoModelForCausalLM.from_pretrained(
+    policy = AutoModelForCausalLM.from_pretrained(
         config.sft_model_path, torch_dtype=torch_dtype
     )
     log_memory_usage(logger)
 
     # Get the PEFT models
     if model_config.use_peft:
-        value_model = wrap_peft(value_model, config, get_peft_config(model_config))
         policy = wrap_peft(policy, config, get_peft_config(model_config))
 
     # Get the tokenizer
@@ -94,7 +90,6 @@ if __name__ == "__main__":
     if tokenizer.chat_template is None:
         tokenizer.chat_template = SIMPLE_QUERY_CHAT_TEMPLATE
     if policy.config.pad_token_id is None:
-        value_model.config.pad_token_id = value_model.config.eos_token_id
         reward_model.config.pad_token_id = reward_model.config.eos_token_id
         policy.config.pad_token_id = policy.config.eos_token_id
         ref_policy.config.pad_token_id = ref_policy.config.eos_token_id
@@ -131,13 +126,12 @@ if __name__ == "__main__":
     ################
     log_memory_usage(logger)
     logger.info("Starting training...")
-    trainer = PPOv2Trainer(
+    trainer = RLOOTrainer(
         config=config,
         tokenizer=tokenizer,
         policy=policy,
         ref_policy=ref_policy,
         reward_model=reward_model,
-        value_model=value_model,
         train_dataset=prepare_dataset(train_dataset, tokenizer),
         eval_dataset=prepare_dataset(eval_dataset, tokenizer),
     )
