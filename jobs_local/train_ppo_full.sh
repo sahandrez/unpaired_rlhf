@@ -1,3 +1,6 @@
+# PPO full training
+# Tested with EleutherAI/pythia-1b-deduped on a single A100 GPU
+
 python ppo.py \
     --model_name_or_path EleutherAI/pythia-1b-deduped \
     --sft_model_path EleutherAI/pythia-1b-deduped \

@@ -1,4 +1,5 @@
-# Trains Zephyr 7B with KTO using QLoRA
+# KTO with QLoRA
+# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
 
 python kto.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
