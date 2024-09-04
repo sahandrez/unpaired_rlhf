@@ -1,4 +1,4 @@
-# PPO full training
+# PPO with paired feedback (full training)
 # Tested with EleutherAI/pythia-1b-deduped on a single A100 GPU
 
 python ppo.py \

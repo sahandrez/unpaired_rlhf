@@ -1,4 +1,4 @@
-# Trains a pairwise reward model with QLoRA
+# Trains a pointwise reward model with QLoRA
 # Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
 
 python pointwise_reward_model.py \

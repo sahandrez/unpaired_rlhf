@@ -1,4 +1,4 @@
-# PPO with QLoRA
+# PPO with paired feedback with QLoRA
 # Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
 
 python ppo.py \

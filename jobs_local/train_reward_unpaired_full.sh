@@ -1,4 +1,4 @@
-# Trains a pairwise reward model with QLoRA
+# Trains a pointwise reward model (full training)
 # Tested with EleutherAI/pythia-1b-deduped on a single A100 GPU
 
 python pointwise_reward_model.py \

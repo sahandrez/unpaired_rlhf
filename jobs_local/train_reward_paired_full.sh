@@ -1,4 +1,4 @@
-# Trains a pairwise reward model
+# Trains a pairwise reward model (full training)
 # Tested with EleutherAI/pythia-1.4b-deduped on a single A100 GPU
 
 python pairwise_reward_model.py \
