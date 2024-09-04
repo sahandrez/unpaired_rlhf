@@ -103,9 +103,11 @@ if __name__ == "__main__":
     # Dataset
     ################
     logger.info("Loading the dataset...")
+    eval_samples = 20
     raw_datasets = load_dataset(script_args.dataset_name)
     train_dataset = raw_datasets[script_args.train_split]
     eval_dataset = raw_datasets[script_args.test_split]
+    eval_dataset = eval_dataset.select(range(eval_samples))
     dataset_text_field = "prompt"
 
     def prepare_dataset(dataset, tokenizer):
