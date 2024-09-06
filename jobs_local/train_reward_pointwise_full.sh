@@ -13,7 +13,7 @@ python pointwise_reward_model.py \
     --per_device_eval_batch_size 32 \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 1 \
-    --learning_rate 1.5e-5 \
+    --learning_rate 5e-6 \
     --max_length 512 \
     --remove_unused_columns False \
     --optim adamw_torch \
