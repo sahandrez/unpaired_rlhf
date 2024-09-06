@@ -1,12 +1,12 @@
-# Trains a pointwise reward model (full training)
-# Tested with EleutherAI/pythia-1b-deduped on a single A100 GPU
+# Trains a pairwise reward model (full training)
+# Tested with google/gemma-2-2b-it on a single A100 GPU
 
-python pointwise_reward_model.py \
-    --model_name_or_path EleutherAI/pythia-1.4b-deduped \
-    --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
-    --train_split "train" \
-    --test_split "test" \
-    --output_dir logs/pointwise-reward-pythia-1.4b-deduped \
+python pairwise_reward_model.py \
+    --model_name_or_path google/gemma-2-2b-it \
+    --dataset_name HuggingFaceH4/ultrafeedback_binarized \
+    --train_split "train_prefs" \
+    --test_split "test_prefs" \
+    --output_dir logs/pairwise-reward-gemma-2-2b-it \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \

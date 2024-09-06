@@ -102,7 +102,7 @@ tomli==2.0.1
 torch==2.4.0
 tqdm==4.66.5
 traitlets==5.14.3
-transformers==4.44.0
+transformers==4.44.2
 triton==3.0.0
 trl==0.9.6
 typing_extensions==4.12.2

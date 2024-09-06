@@ -81,6 +81,8 @@ if __name__ == "__main__":
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
         use_cache=False,
+        torch_dtype=torch_dtype,
+        attn_implementation=model_config.attn_implementation,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
         model_config.model_name_or_path, num_labels=1, **model_kwargs
