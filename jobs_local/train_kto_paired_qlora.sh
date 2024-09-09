@@ -6,7 +6,7 @@ python kto.py \
     --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
     --train_split "train" \
     --test_split "test" \
-    --output_dir logs/kto-zephyr-7b-sft-qlora \
+    --output_dir logs/kto \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 4 \

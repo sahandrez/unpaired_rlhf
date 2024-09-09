@@ -6,7 +6,7 @@ python pointwise_reward_model.py \
     --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
     --train_split "train" \
     --test_split "test" \
-    --output_dir logs/pointwise-reward-zephyr-7b-sft-qlora \
+    --output_dir logs/pointwise-reward \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \

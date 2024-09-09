@@ -48,8 +48,9 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     config.output_dir += (
-        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 
     # PPOv2 Trainer does not suppor run_name

@@ -2,11 +2,11 @@
 # Tested with google/gemma-2-2b-it on a single A100 GPU
 
 python pointwise_reward_model.py \
-    --model_name_or_path google/gemma-2-2b-it \
+    --model_name_or_path google/gemma-2b-it \
     --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
     --train_split "train" \
     --test_split "test" \
-    --output_dir logs/pointwise-reward-gemma-2-2b-it \
+    --output_dir logs/pointwise-reward \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \

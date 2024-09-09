@@ -63,8 +63,9 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     reward_config.output_dir += (
-        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    reward_config.output_dir = reward_config.output_dir.replace("_", "-")
     reward_config.run_name = reward_config.output_dir
 
     # Set seed everywhere

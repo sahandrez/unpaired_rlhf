@@ -8,7 +8,7 @@ python ppo.py \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --train_split "train_prefs" \
     --test_split "test_prefs" \
-    --output_dir logs/ppo-pythia-1b-deduped \
+    --output_dir logs/ppo \
     --num_ppo_epochs 1 \
     --num_mini_batches 1 \
     --learning_rate 3e-6 \
@@ -16,9 +16,9 @@ python ppo.py \
     --torch_dtype bfloat16 \
     --per_device_train_batch_size 4 \
     --gradient_accumulation_steps 16 \
+    --local_rollout_forward_batch_size 4 \
     --gradient_checkpointing \
     --total_episodes 1000000 \
-    --local_rollout_forward_batch_size 4 \
     --non_eos_penalty \
     --report_to wandb \
     --push_to_hub \

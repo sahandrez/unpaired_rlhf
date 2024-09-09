@@ -40,8 +40,9 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     kto_args.output_dir += (
-        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    kto_args.output_dir = kto_args.output_dir.replace("_", "-")
     kto_args.run_name = kto_args.output_dir
 
     # Set seed everywhere

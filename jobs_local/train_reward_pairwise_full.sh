@@ -2,11 +2,11 @@
 # Tested with google/gemma-2-2b-it on a single A100 GPU
 
 python pairwise_reward_model.py \
-    --model_name_or_path google/gemma-2-2b-it \
+    --model_name_or_path google/gemma-2b-it \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --train_split "train_prefs" \
     --test_split "test_prefs" \
-    --output_dir logs/pairwise-reward-gemma-2-2b-it \
+    --output_dir logs/pairwise-reward \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --per_device_train_batch_size 32 \
