@@ -22,8 +22,9 @@ from trl import ModelConfig, get_peft_config
 from trl.trainer.rloo_trainer import RLOOConfig, RLOOTrainer
 from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
 
-from unpaired_rlhf.utils.runtime import set_seed, log_memory_usage
+# from unpaired_rlhf.trainer.unpaired_rloo_trainer import UnpairedRLOOTrainer
 from unpaired_rlhf.trainer.utils import wrap_peft
+from unpaired_rlhf.utils.runtime import set_seed, log_memory_usage
 
 
 # Set up logging
@@ -34,12 +35,13 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ScriptArguments:
     """
-    The arguments for the PPOv2 training script.
+    The arguments for the RLOO training script.
     """
 
     dataset_name: str = "HuggingFaceH4/ultrafeedback_binarized"
     train_split: str = "train_prefs"
     test_split: str = "test_prefs"
+    unpaired: bool = False
 
 
 if __name__ == "__main__":
@@ -48,8 +50,9 @@ if __name__ == "__main__":
 
     # Add dataset name and a timestamp to the output directory
     config.output_dir += (
-        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
+        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     )
+    config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 
     # RLOO Trainer does not suppor run_name
@@ -59,20 +62,35 @@ if __name__ == "__main__":
     # Set seed everywhere
     set_seed(config.seed)
 
+    # Unpaired or paired feedback setup
+    if script_args.unpaired:
+        # trainer_cls = UnpairedRLOOTrainer
+        # num_labels = 2
+        pass
+    else:
+        trainer_cls = RLOOTrainer
+        num_labels = 1
+
     ################
     # Model & Tokenizer
     ################
     logger.info("Loading the pretrained models...")
-
-    torch_dtype = model_config.torch_dtype
+    
+    model_kwargs = dict(
+        revision=model_config.model_revision,
+        trust_remote_code=model_config.trust_remote_code,
+        use_cache=False,
+        torch_dtype=model_config.torch_dtype,
+        attn_implementation=model_config.attn_implementation,
+    )
     reward_model = AutoModelForSequenceClassification.from_pretrained(
-        config.reward_model_path, num_labels=1, torch_dtype=torch_dtype
+        config.reward_model_path, num_labels=num_labels, **model_kwargs
     )
     ref_policy = AutoModelForCausalLM.from_pretrained(
-        config.sft_model_path, torch_dtype=torch_dtype
+        config.sft_model_path, **model_kwargs
     )
     policy = AutoModelForCausalLM.from_pretrained(
-        config.sft_model_path, torch_dtype=torch_dtype
+        config.sft_model_path, **model_kwargs
     )
     log_memory_usage(logger)
 
@@ -128,7 +146,7 @@ if __name__ == "__main__":
     ################
     log_memory_usage(logger)
     logger.info("Starting training...")
-    trainer = RLOOTrainer(
+    trainer = trainer_cls(
         config=config,
         tokenizer=tokenizer,
         policy=policy,
