@@ -2,7 +2,7 @@
 Script to finetune an LLM with PPOv2.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/ppo/ppo.py
+https://github.com/huggingface/trl/blob/main/examples/scripts/ppo/ppo.py
 """
 
 import logging
@@ -47,9 +47,7 @@ if __name__ == "__main__":
     script_args, config, model_config = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += (
-        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    )
+    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 

@@ -2,7 +2,7 @@
 Script to finetune an LLM with KTO.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/kto.py
+https://github.com/huggingface/trl/blob/main/examples/scripts/kto.py
 """
 
 import time
@@ -39,9 +39,7 @@ if __name__ == "__main__":
     script_args, kto_args, model_args = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
-    kto_args.output_dir += (
-        f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    )
+    kto_args.output_dir += f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     kto_args.output_dir = kto_args.output_dir.replace("_", "-")
     kto_args.run_name = kto_args.output_dir
 

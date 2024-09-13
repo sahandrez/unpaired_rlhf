@@ -2,7 +2,7 @@
 Script to finetune an LLM with RLOO.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/rloo/rloo.py
+https://github.com/huggingface/trl/blob/main/examples/scripts/rloo/rloo.py
 """
 
 import logging
@@ -49,9 +49,7 @@ if __name__ == "__main__":
     script_args, config, model_config = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += (
-        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    )
+    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 
@@ -75,7 +73,7 @@ if __name__ == "__main__":
     # Model & Tokenizer
     ################
     logger.info("Loading the pretrained models...")
-    
+
     model_kwargs = dict(
         revision=model_config.model_revision,
         trust_remote_code=model_config.trust_remote_code,
@@ -89,9 +87,7 @@ if __name__ == "__main__":
     ref_policy = AutoModelForCausalLM.from_pretrained(
         config.sft_model_path, **model_kwargs
     )
-    policy = AutoModelForCausalLM.from_pretrained(
-        config.sft_model_path, **model_kwargs
-    )
+    policy = AutoModelForCausalLM.from_pretrained(config.sft_model_path, **model_kwargs)
     log_memory_usage(logger)
 
     # Get the PEFT models

@@ -2,7 +2,7 @@
 Script to train a pointwise reward model.
 
 Scipt adapted from the TRL library:
-https://github.com/huggingface/trl/blob/v0.9.6/examples/scripts/reward_modeling.py
+https://github.com/huggingface/trl/blob/main/examples/scripts/reward_modeling.py
 https://huggingface.co/docs/transformers/en/tasks/sequence_classification
 """
 
@@ -62,9 +62,7 @@ if __name__ == "__main__":
     reward_config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
 
     # Add dataset name and a timestamp to the output directory
-    reward_config.output_dir += (
-        f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    )
+    reward_config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     reward_config.output_dir = reward_config.output_dir.replace("_", "-")
     reward_config.run_name = reward_config.output_dir
 
