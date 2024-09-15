@@ -59,6 +59,9 @@ if __name__ == "__main__":
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
     )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_config.model_name_or_path, **model_kwargs
+    )
     tokenizer = AutoTokenizer.from_pretrained(
         model_config.model_name_or_path,
         trust_remote_code=model_config.trust_remote_code,
@@ -67,9 +70,6 @@ if __name__ == "__main__":
     tokenizer.pad_token = tokenizer.eos_token
 
     if tokenizer.chat_template is None:
-        model = AutoModelForCausalLM.from_pretrained(
-            model_config.model_name_or_path, **model_kwargs
-        )
         model, tokenizer = setup_chat_format(model, tokenizer)
 
     ################

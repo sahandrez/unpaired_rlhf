@@ -16,7 +16,8 @@ python sft.py \
     --num_train_epochs=3 \
     --max_steps=-1 \
     --eval_strategy steps \
-    --eval_steps 250 \
+    --eval_steps 20 \
+    --save_steps 20 \
     --load_best_model_at_end \
     --report_to wandb \
     --push_to_hub \
