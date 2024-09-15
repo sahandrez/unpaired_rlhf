@@ -1,26 +1,24 @@
 
 python sft.py \
-    --model_name_or_path="google/gemma-2-2b" \
-    --dataset_name="HuggingFaceH4/ultrafeedback_binarized" \
-    --dataset_train_split "train_sft" \
-    --dataset_test_split "test_sft" \
-    --dataset_text_field="messages" \
-    --max_seq_length 2048 \
-    --packing False \
-    --output_dir="logs/sft" \
+    --model_name_or_path google/gemma-2-2b \
+    --dataset_name HuggingFaceH4/ultrafeedback_binarized \
+    --dataset_train_split train_sft \
+    --dataset_test_split test_sft \
+    --dataset_text_field messages \
+    --output_dir logs/sft \
     --torch_dtype bfloat16 \
     --attn_implementation eager \
     --learning_rate=1.41e-5 \
-    --per_device_train_batch_size=32 \
-    --gradient_accumulation_steps=32 \
+    --per_device_train_batch_size=8 \
+    --gradient_accumulation_steps=128 \
     --gradient_checkpointing \
-    --logging_steps=10 \
+    --logging_steps=1 \
     --num_train_epochs=3 \
     --max_steps=-1 \
     --eval_strategy steps \
     --eval_steps 250 \
     --load_best_model_at_end \
-    --report_to="wandb" \
+    --report_to wandb \
     --push_to_hub \
     --bf16 \
     --logging_first_step \
