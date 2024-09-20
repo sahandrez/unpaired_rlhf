@@ -1,117 +1,146 @@
+import numpy as np
+import concurrent.futures
+import os
+from huggingface_hub import login
+token = os.getenv('HF_TOKEN')
+# Authenticate
+login(token)
+
+from dataclasses import dataclass, field
+from typing import Optional
+
+from datasets import load_dataset
+from transformers import HfArgumentParser
+from vllm import LLM, SamplingParams
+
+from trl import HfPairwiseJudge, OpenAIPairwiseJudge
+
+
+DEFAULT_PAIRWISE_SYSTEM_PROMPT = '''I require a leaderboard for various large language models. I'll provide you with prompts given to these models and their corresponding outputs. Your task is to assess these responses, and select the model that produces the best output from a human perspective.
+
+## Instruction
+
+{{
+    "instruction": """{prompt}""",
+}}
+
+## Model Outputs
+
+Here are the unordered outputs from the models. Each output is associated with a specific model, identified by a unique model identifier.
+
+{{
+    {{
+        "model_identifier": "0",
+        "output": """{response0}"""
+    }},
+    {{
+        "model_identifier": "1",
+        "output": """{response1}"""
+    }}
+}}
+
+## Task
+
+Evaluate the models on the basis of the quality and relevance of their results, and select the model that generated the best result. Reply with the identifier of the best model. Our evaluation will only take into account the first character of your answer, so make sure it contains only one of the identifiers and nothing else (no quotation marks, no spaces, no new lines, ...).
+'''
+
+
+"""
+Examples:
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/rloo_tldr --num_examples 1000
+Model win rate: 31.40%
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/rloo_tldr --judge_model gpt-3.5-turbo-0125 --num_examples 1000
+Model win rate: 51.60%
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/rloo_tldr --judge_model gpt-4o-mini --num_examples 1000
+Model win rate: 51.20%
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/ppo_tldr --num_examples 1000
+Model win rate: 46.30%
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/ppo_tldr --judge_model gpt-3.5-turbo-0125 --num_examples 1000
+Model win rate: 52.50%
+
+python examples/scripts/evals/judge_tldr.py --model_name_or_path vwxyzjn/ppo_tldr --judge_model gpt-4o-mini --num_examples 1000
+Model win rate: 63.00%
+"""
+
+
+
+import torch
 import re
-from trl.trl import BasePairwiseJudge
+from trl import BasePairwiseJudge
 from vllm import LLM, SamplingParams  # Ensure these imports match your actual library usage
 import argparse
 
-class LlamaJudge(BasePairwiseJudge):
-    def __init__(self, model_name, model_revision, dtype, temperature, max_tokens, top_p, tensor_parallel_size=1):
-        super().__init__()
-        self.llm = LLM(
-            model=model_name,
-            revision=model_revision,
-            dtype=dtype,
-            tensor_parallel_size=tensor_parallel_size,   # This changes the GPU support to 2
-            trust_remote_code=True,
-            max_model_len=1024,
-        )
-        self.tokenizer = self.llm.get_tokenizer()
-        
-        self.sampling_params = SamplingParams(
-            temperature=temperature,
-            max_tokens=max_tokens,
-            top_p=top_p,
-            n=1,
-            stop_token_ids=[self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|eot_id|>")],
-            #stop_token_ids=[self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("")]
-            # stop_token_ids=[self.tokenizer.eos_token_id]  # Only use EOS token ID, 
-            # By including the appropriate stop tokens, it ensures that the generated responses are of the desired length and quality.
-        )
 
-    def make_prompt(self, article, answer_a, answer_b):
-        JUDGE_PROMPT = ("Please act as an impartial judge and evaluate the quality of the responses provided "
-                        "by two AI assistants to the user question displayed below. You should choose the "
-                        "assistant that follows the user's instructions and answers the user's question better. "
-                        "Your evaluation should consider factors such as the helpfulness, relevance, accuracy, "
-                        "depth, creativity, and level of detail of their responses. Begin your evaluation by "
-                        "comparing the two responses and provide a short explanation. Avoid any position biases "
-                        "and ensure that the order in which the responses were presented does not influence your "
-                        "decision. Do not allow the length of the responses to influence your evaluation. Do not "
-                        "favor certain names of the assistants. Be as objective as possible. After providing your "
-                        "explanation, output your final verdict by strictly following this format: \"The answer is "
-                        "[[A]]\" if assistant A is better, \"The answer is [[B]]\" if assistant B is better, and "
-                        "\"The answer is [[C]]\" for a tie.")
-        return f"{JUDGE_PROMPT}\n[User Question]\n{article}\n\n[The Start of Assistant A's Answer]\n{answer_a}\n[The End of Assistant A's Answer]\n\n[The Start of Assistant B's Answer]\n{answer_b}\n[The End of Assistant B's Answer]"
-
-        # JUDGE_PROMPT = "Please act as an impartial judge and evaluate the quality of the responses provided by two AI assistants to the user question displayed below. You should choose the assistant that follows the user's instructions and answers the user's question better. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of their responses. Begin your evaluation by comparing the two responses and provide a short explanation. Avoid any position biases and ensure that the order in which the responses were presented does not influence your decision. Do not allow the length of the responses to influence your evaluation. Do not favor certain names of the assistants. Be as objective as possible. After providing your explanation, output your final verdict by strictly following this format: \"The answer is [[A]]\" if assistant A is better, \"The answer is [[B]]\" if assistant B is better, and \"The answer is [[C]]\" for a tie."
-        # preamble = JUDGE_PROMPT
-        # prompt = f"{preamble}\n[User Question]\n{article}\n\n[The Start of Assistant A's Answer]\n{answer_a}\n[The End of Assistant A's Answer]\n\n[The Start of Assistant B's Answer]\n{answer_b}\n[The End of Assistant B's Answer]"
-        # return prompt
-
-
-
-    def extract_answer(self, output, prefix = "The answer is"):
-        #The answer is [[B]] or something 
-        match = re.match(r'\[\[(A|B|C)\]\]', output.split(prefix)[-1].strip())
-        return match.group(1) if match else ""
-
-    def judge(self, prompts, completions, shuffle_order=False):
-        # Generate the prompt
-        prompt = self.make_prompt(prompts['question'], completions['a'], completions['b'])
-        
-        # Generate the evaluation using VLLM
-        # sample_prompt = 'I require a leaderboard for various large language models. I\'ll provide you with prompts given to these models and their corresponding outputs. Your task is to assess these responses, and select the model that produces the best output from a human perspective.\n\n## Instruction\n\n{\n    "instruction": """What is the capital of France?""",\n}\n\n## Model Outputs\n\nHere are the unordered outputs from the models. Each output is associated with a specific model, identified by a unique model identifier.\n\n{\n    {\n        "model_identifier": "0",\n        "output": """Paris"""\n    },\n    {\n        "model_identifier": "1",\n        "output": """Lyon"""\n    }\n}\n\n## Task\n\nEvaluate the models on the basis of the quality and relevance of their results, and select the model that generated the best result. Reply with the identifier of the best model. Our evaluation will only take into account the first character of your answer, so make sure it contains only one of the identifiers and nothing else (no quotation marks, no spaces, no new lines, ...).\n'
-        # sample_outputs = self.llm.generate(sample_prompt)
-        
-        outputs = self.llm.generate(prompt, self.sampling_params)
-        # Print the outputs.
-        for output in outputs:
-            prompt = output.prompt
-            generated_text = output.outputs[0].text
-            #print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")
-        # Extract the answer from the result
-        return self.extract_answer(generated_text)
-
-    
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Judge AI responses using LLaMA model.")
-    parser.add_argument('--model_name', type=str, default='meta-llama/Meta-Llama-3.1-8b-Instruct', help="Name of the LLaMA model.")
-    parser.add_argument('--model_revision', type=str, default='main', help="Revision of the LLaMA model.")
-    parser.add_argument('--model_dtype', type=str, default='float32', help="Data type for the model.")
-    parser.add_argument('--model_temperature', type=float, default=0.7, help="Temperature parameter for sampling.")
-    parser.add_argument('--max_new_tokens', type=int, default=50, help="Maximum number of new tokens to generate.")
-    parser.add_argument('--top_p', type=float, default=0.9, help="Top-p parameter for sampling.")
-    parser.add_argument('--tensor_parallel_size', type=int, default=1, help="number of GPUs to utilize")
-
-
-
-    args = parser.parse_args()
-
-    # Create an instance of LlamaJudge with these arguments
-    judge = LlamaJudge(
-        model_name=args.model_name,
-        model_revision=args.model_revision,
-        dtype=args.model_dtype,
-        temperature=args.model_temperature,
-        max_tokens=args.max_new_tokens,
-        top_p=args.top_p,
-        tensor_parallel_size=args.tensor_parallel_size,
+@dataclass
+class ScriptArguments:
+    model_name_or_path: str = field(metadata={"help": "The model name or path to the model to evaluate."})
+    judge_model: str = field(
+        default="meta-llama/Meta-Llama-3-70B-Instruct",
+        metadata={
+            "help": "The model name or path to the model to use as a judge. E.g., 'gpt-3.5-turbo-0125', 'meta-llama/Meta-Llama-3-70B-Instruct'."
+        },
     )
-
-    # Example input for judging
-    prompts = {
-        'question': 'What is the capital of France?'
-    }
-    completions = {
-        'a': 'Paris is the capital of France.',
-        'b': 'The capital city of France is Paris.'
-    }
-
-    # Get the evaluation result
-    result = judge.judge(prompts, completions)
-    print(f"The better answer is: {result}")
+    dataset_name: str = field(default="trl-lib/tldr")
+    num_examples: Optional[int] = field(default=None, metadata={"help": "The number of examples to evaluate."})
 
 
-if __name__ == "__main__":
-    main()
+# Parse the arguments
+parser = HfArgumentParser(ScriptArguments)
+args = parser.parse_args_into_dataclasses()[0]
+
+
+# load datasets
+if args.dataset_name=="HuggingFaceH4/ultrafeedback_binarized":
+    raw_dataset = load_dataset("HuggingFaceH4/ultrafeedback_binarized", split="test_prefs")
+    if args.num_examples is not None:
+        raw_dataset = raw_dataset.select(range(args.num_examples))
+    # Extract the prompts and reference completions
+    prompts = raw_dataset["prompt"]
+    reference_completions = raw_dataset["chosen"]
+    reference_completions = [completion[1]['content'].strip() for completion in reference_completions]
+    assert type(reference_completions[0])==str
+
+
+elif args.dataset_name=="trl-lib/tldr":
+    raw_dataset = load_dataset("trl-lib/tldr", split="validation")
+    if args.num_examples is not None:
+        raw_dataset = raw_dataset.select(range(args.num_examples))
+    # Extract the prompts and reference completions
+    prompts = raw_dataset["prompt"]
+    reference_completions = raw_dataset["completion"]
+
+
+# load llm model
+llm = LLM(model=args.model_name_or_path, tensor_parallel_size=1)
+# Generate the model completions
+sampling_params = SamplingParams(temperature=0.0, top_p=0.95, max_tokens=200)  # very generous max token length
+outputs = llm.generate(prompts, sampling_params)
+model_completions = [output.outputs[0].text.strip() for output in outputs]
+
+
+# # Judge the outputs
+if "gpt" in args.judge_model:
+    judge = OpenAIPairwiseJudge(args.judge_model)
+else:
+    judge = HfPairwiseJudge(args.judge_model)
+
+completions = [[c0, c1] for c0, c1 in zip(reference_completions, model_completions)]
+
+
+report_list = []
+batch = 10
+import time
+for i in range(0, len(completions), batch):
+    best_idxs = judge.judge(prompts[i:i+batch], completions[i:i+batch])           # correct
+
+    #best_idxs = llm.judge(prompts, completions)               # dummy
+    model_win_rate = best_idxs.count(1) / len(best_idxs)
+    print(f"Model win rate: {model_win_rate:.2f}%")
+    report_list.append(model_win_rate)
+    #time.sleep(2)
+print(f"Model win rate: {np.mean(report_list)*100:.2f}%")
