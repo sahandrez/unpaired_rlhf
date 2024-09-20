@@ -3,9 +3,9 @@
 
 python pointwise_reward_model.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
-    --dataset_name sahandrez/ultrafeedback_binarized_unpaired \
-    --train_split "train" \
-    --test_split "test" \
+    --dataset_name sahandrez/ultrafeedback_unpaired \
+    --dataset_train_split "train" \
+    --dataset_test_split "test" \
     --output_dir logs/pointwise-reward \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
@@ -14,7 +14,7 @@ python pointwise_reward_model.py \
     --gradient_accumulation_steps 1 \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
-    --max_length 512 \
+    --max_length 2048 \
     --remove_unused_columns False \
     --optim adamw_torch \
     --gradient_checkpointing \
@@ -23,7 +23,7 @@ python pointwise_reward_model.py \
     --eval_steps 200 \
     --load_best_model_at_end \
     --report_to wandb \
-    --push_to_hub \
+    --push_to_hub True \
     --bf16 \
     --logging_first_step \
     --use_peft \
