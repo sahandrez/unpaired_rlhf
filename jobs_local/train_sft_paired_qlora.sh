@@ -1,5 +1,4 @@
 # SFT full training onn RLHF dataset
-# Tested with google/gemma-2-2b-it on a single A100 GPU
 
 python sft.py \
     --model_name_or_path google/gemma-2-2b \
@@ -25,3 +24,9 @@ python sft.py \
     --push_to_hub True \
     --bf16 \
     --logging_first_step \
+    --use_peft \
+    --load_in_4bit \
+    --lora_r 128 \
+    --lora_alpha 128 \
+    --lora_dropout 0.05 \
+    --lora_target_modules q_proj k_proj v_proj o_proj gate_proj up_proj down_proj

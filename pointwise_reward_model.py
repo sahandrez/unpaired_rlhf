@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     with PartialState().local_main_process_first():
         # Wrap inputs with chat template.
-        # This assumes the chosen/rejected columns are in the OpenAI messages format.
+        # This assumes the completion columns are in the OpenAI messages format.
         completion_fn = conversations_formatting_function(tokenizer, "completion")
         dataset = dataset.map(
             lambda x: {"completion": completion_fn(x)},
