@@ -5,24 +5,6 @@ Utilities to preprocess preference datasets to an unpaired format.
 from datasets import load_dataset, DatasetDict
 
 
-def convert_to_kto_format(batch: dict) -> dict:
-    return {
-        "prompt": [prompt for prompt in batch["prompt"]]
-        + [prompt for prompt in batch["prompt"]],
-        "completion": [chosen for chosen in batch["chosen"]]
-        + [rejected for rejected in batch["rejected"]],
-        "label": [1 for _ in batch["chosen"]] + [0 for _ in batch["rejected"]],
-    }
-
-
-def convert_to_unpaired_reward_format(batch: dict) -> dict:
-    return {
-        "completion": [chosen for chosen in batch["chosen"]]
-        + [rejected for rejected in batch["rejected"]],
-        "label": [1 for _ in batch["chosen"]] + [0 for _ in batch["rejected"]],
-    }
-
-
 def convert_prompt_to_chat_format(row: dict) -> dict:
     row["prompt"] = [{"role": "user", "content": row["prompt"]}]
     return row
@@ -42,6 +24,7 @@ def create_unpaired_rlhf_dataset(
     test_split: str,
     remove_user_messages: bool = False,
     convert_prompt_to_chat: bool = False,
+    label_dtype=int,
 ):
     """
     Converts a preference dataset to the KTO format and saves it to the hub.
@@ -54,6 +37,8 @@ def create_unpaired_rlhf_dataset(
 
     Note: Only tested on the `HuggingFaceH4/ultrafeedback_binarized` dataset.
     """
+    assert label_dtype in [int, bool], "label_dtype must be either int or bool"
+
     train_dataset = load_dataset(dataset_name, split=train_split)
     test_dataset = load_dataset(dataset_name, split=test_split)
 
@@ -70,6 +55,18 @@ def create_unpaired_rlhf_dataset(
             convert_prompt_to_chat_format,
             batched=False,
         )
+
+    def convert_to_kto_format(
+        batch: dict,
+    ) -> dict:
+        return {
+            "prompt": [prompt for prompt in batch["prompt"]]
+            + [prompt for prompt in batch["prompt"]],
+            "completion": [chosen for chosen in batch["chosen"]]
+            + [rejected for rejected in batch["rejected"]],
+            "label": [label_dtype(1) for _ in batch["chosen"]]
+            + [label_dtype(0) for _ in batch["rejected"]],
+        }
 
     # Convert to KTO format
     unpaired_dataset = unpaired_dataset.map(
@@ -104,6 +101,7 @@ if __name__ == "__main__":
         test_split=test_split,
         remove_user_messages=True,
         convert_prompt_to_chat=True,
+        label_dtype=bool,
     )
 
     # Convert "HuggingFaceH4/ultrafeedback_binarized" to a general purpose unpaired dataset
@@ -118,4 +116,5 @@ if __name__ == "__main__":
         test_split=test_split,
         remove_user_messages=False,
         convert_prompt_to_chat=True,
+        label_dtype=int,
     )
