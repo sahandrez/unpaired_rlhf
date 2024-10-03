@@ -7,8 +7,9 @@ python rloo.py \
     --reward_model_path sahandrez/pairwise-reward-zephyr-7b-sft-qlora-ultrafeedback \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --unpaired False \
-    --train_split "train_prefs" \
-    --test_split "test_prefs" \
+    --dataset_train_split "train_prefs" \
+    --dataset_test_split "test_prefs" \
+    --dataset_text_field "prompt" \
     --output_dir logs/rloo-paired \
     --num_ppo_epochs 1 \
     --rloo_k 2 \
@@ -18,13 +19,13 @@ python rloo.py \
     --torch_dtype bfloat16 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 2 \
-    --gradient_accumulation_steps 16 \
     --local_rollout_forward_batch_size 1 \
+    --gradient_accumulation_steps 16 \
     --gradient_checkpointing \
-    --total_episodes 100000 \
-    --non_eos_penalty \
+    --total_episodes 50000 \
+    --missing_eos_penalty 1.0 \
     --report_to wandb \
-    --push_to_hub \
+    --push_to_hub True \
     --bf16 \
     --logging_first_step \
     --use_peft \

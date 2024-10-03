@@ -15,10 +15,10 @@ def wrap_peft(
 ):
     """
     Wraps the model in a PeftModel if it is not already a PeftModel.
-    Code is adapted from the SFTTrainer: 
+    Code is adapted from the SFTTrainer:
     https://github.com/huggingface/trl/blob/v0.9.6/trl/trainer/sft_trainer.py
     """
-    
+
     if not isinstance(model, PeftModel):
         if getattr(model, "is_loaded_in_8bit", False) or getattr(
             model, "is_quantized", False

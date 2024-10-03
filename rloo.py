@@ -8,8 +8,9 @@ https://github.com/huggingface/trl/blob/main/examples/scripts/rloo/rloo.py
 import logging
 import time
 from dataclasses import dataclass
-
 import wandb
+
+from accelerate import PartialState
 from datasets import load_dataset
 from transformers import (
     AutoModelForCausalLM,
@@ -18,13 +19,13 @@ from transformers import (
     HfArgumentParser,
 )
 
-from trl import ModelConfig, get_peft_config
+from trl import ModelConfig, get_peft_config, setup_chat_format
 from trl.trainer.rloo_trainer import RLOOConfig, RLOOTrainer
-from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
+from trl.extras.dataset_formatting import conversations_formatting_function
 
 # from unpaired_rlhf.trainer.unpaired_rloo_trainer import UnpairedRLOOTrainer
 from unpaired_rlhf.trainer.utils import wrap_peft
-from unpaired_rlhf.utils.runtime import set_seed, log_memory_usage
+from unpaired_rlhf.utils.runtime import set_seed
 
 
 # Set up logging
@@ -39,17 +40,18 @@ class ScriptArguments:
     """
 
     dataset_name: str = "HuggingFaceH4/ultrafeedback_binarized"
-    train_split: str = "train_prefs"
-    test_split: str = "test_prefs"
+    dataset_train_split: str = "train_prefs"
+    dataset_test_split: str = "test_prefs"
+    dataset_text_field: str = "prompt"
     unpaired: bool = False
 
 
 if __name__ == "__main__":
     parser = HfArgumentParser((ScriptArguments, RLOOConfig, ModelConfig))
-    script_args, config, model_config = parser.parse_args_into_dataclasses()
+    args, config, model_config = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 
@@ -61,10 +63,8 @@ if __name__ == "__main__":
     set_seed(config.seed)
 
     # Unpaired or paired feedback setup
-    if script_args.unpaired:
-        # trainer_cls = UnpairedRLOOTrainer
-        # num_labels = 2
-        pass
+    if args.unpaired:
+        raise NotImplementedError("Unpaired feedback is not yet supported.")
     else:
         trainer_cls = RLOOTrainer
         num_labels = 1
@@ -73,7 +73,6 @@ if __name__ == "__main__":
     # Model & Tokenizer
     ################
     logger.info("Loading the pretrained models...")
-
     model_kwargs = dict(
         revision=model_config.model_revision,
         trust_remote_code=model_config.trust_remote_code,
@@ -88,7 +87,6 @@ if __name__ == "__main__":
         config.sft_model_path, **model_kwargs
     )
     policy = AutoModelForCausalLM.from_pretrained(config.sft_model_path, **model_kwargs)
-    log_memory_usage(logger)
 
     # Get the PEFT models
     if model_config.use_peft:
@@ -100,47 +98,54 @@ if __name__ == "__main__":
         padding_side="left",
         trust_remote_code=True,
     )
-    tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+
+    # Align padding tokens between tokenizer and model
+    reward_model.config.pad_token_id = tokenizer.pad_token_id
+    ref_policy.config.pad_token_id = tokenizer.pad_token_id
+    policy.config.pad_token_id = tokenizer.pad_token_id
+
+    # If post-training a base model, use ChatML as the default template
     if tokenizer.chat_template is None:
-        tokenizer.chat_template = SIMPLE_QUERY_CHAT_TEMPLATE
-    if policy.config.pad_token_id is None:
-        reward_model.config.pad_token_id = reward_model.config.eos_token_id
-        policy.config.pad_token_id = policy.config.eos_token_id
-        ref_policy.config.pad_token_id = ref_policy.config.eos_token_id
+        reward_model, tokenizer = setup_chat_format(reward_model, tokenizer)
+        ref_policy, _ = setup_chat_format(ref_policy, tokenizer)
+        policy, _ = setup_chat_format(policy, tokenizer)
 
     ################
     # Dataset
     ################
     logger.info("Loading the dataset...")
     eval_samples = 20
-    raw_datasets = load_dataset(script_args.dataset_name)
-    train_dataset = raw_datasets[script_args.train_split]
-    eval_dataset = raw_datasets[script_args.test_split]
+    dataset = load_dataset(args.dataset_name)
+    train_dataset = dataset[args.dataset_train_split]
+    eval_dataset = dataset[args.dataset_test_split]
     eval_dataset = eval_dataset.select(range(eval_samples))
-    dataset_text_field = "prompt"
 
     def prepare_dataset(dataset, tokenizer):
         """pre-tokenize the dataset before training; only collate during training"""
 
         def tokenize(element):
             outputs = tokenizer(
-                element[dataset_text_field],
+                element[args.dataset_text_field],
                 padding=False,
             )
             return {"input_ids": outputs["input_ids"]}
 
         return dataset.map(
             tokenize,
-            remove_columns=dataset.column_names,
             batched=True,
-            num_proc=4,  # multiprocessing.cpu_count(),
-            load_from_cache_file=False,
+            remove_columns=dataset.column_names,
+            num_proc=config.dataset_num_proc,
         )
+
+    # Compute that only on the main process for faster data processing.
+    # see: https://github.com/huggingface/trl/pull/1255
+    with PartialState().local_main_process_first():
+        train_dataset = prepare_dataset(train_dataset, tokenizer)
+        eval_dataset = prepare_dataset(eval_dataset, tokenizer)
 
     ################
     # Training
     ################
-    log_memory_usage(logger)
     logger.info("Starting training...")
     trainer = trainer_cls(
         config=config,
@@ -148,8 +153,8 @@ if __name__ == "__main__":
         policy=policy,
         ref_policy=ref_policy,
         reward_model=reward_model,
-        train_dataset=prepare_dataset(train_dataset, tokenizer),
-        eval_dataset=prepare_dataset(eval_dataset, tokenizer),
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
     )
     trainer.train()
     trainer.save_model(config.output_dir)
