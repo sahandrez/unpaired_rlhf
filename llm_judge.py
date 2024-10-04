@@ -136,9 +136,7 @@ report_list = []
 batch = 10
 import time
 for i in range(0, len(completions), batch):
-    best_idxs = judge.judge(prompts[i:i+batch], completions[i:i+batch])           # correct
-
-    #best_idxs = llm.judge(prompts, completions)               # dummy
+    best_idxs = judge.judge(prompts[i:i+batch], completions[i:i+batch])
     model_win_rate = best_idxs.count(1) / len(best_idxs)
     print(f"Model win rate: {model_win_rate:.2f}%")
     report_list.append(model_win_rate)
