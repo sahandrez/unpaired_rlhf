@@ -14,3 +14,15 @@ bash jobs_local/train_pairwise_reward.sh
 ```bash
 bash jobs_local/train_pointwise_reward.sh
 ```
+
+---
+
+* Collect model completion for llm judge
+```
+./jobs_local/run_model_completion.sh
+```
+
+* Use LLM Judge
+```
+./jobs_local/run_llm_judge.sh
+```
