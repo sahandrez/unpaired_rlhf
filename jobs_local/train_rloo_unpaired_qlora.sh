@@ -1,12 +1,17 @@
-python ppo.py \
+# RLOO with QLoRA
+# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
+
+python rloo.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --sft_model_path alignment-handbook/zephyr-7b-sft-qlora \
-    --reward_model_path sahandrez/pairwise-reward-zephyr-7b-sft-qlora_ultrafeedback_binarized \
+    --reward_model_path sahandrez/pointwise-reward-zephyr-7b-sft-qlora-ultrafeedback \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
+    --unpaired True \
     --train_split "train_prefs" \
     --test_split "test_prefs" \
-    --output_dir logs/ppo-zephyr-7b-sft-qlora \
+    --output_dir logs/rloo-unpaired \
     --num_ppo_epochs 1 \
+    --rloo_k 2 \
     --num_mini_batches 1 \
     --learning_rate 3e-6 \
     --attn_implementation flash_attention_2 \
@@ -14,9 +19,9 @@ python ppo.py \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 2 \
     --gradient_accumulation_steps 16 \
-    --gradient_checkpointing \
-    --total_episodes 10000 \
     --local_rollout_forward_batch_size 1 \
+    --gradient_checkpointing \
+    --total_episodes 1000000 \
     --non_eos_penalty \
     --report_to wandb \
     --push_to_hub \

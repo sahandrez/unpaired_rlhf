@@ -4,17 +4,17 @@
 python pairwise_reward_model.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
-    --train_split "train_prefs" \
-    --test_split "test_prefs" \
-    --output_dir logs/pairwise-reward-zephyr-7b-sft-qlora \
+    --dataset_train_split "train_prefs" \
+    --dataset_test_split "test_prefs" \
+    --output_dir logs/pairwise-reward \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
-    --per_device_train_batch_size 32 \
+    --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 32 \
-    --gradient_accumulation_steps 1 \
+    --gradient_accumulation_steps 2 \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
-    --max_length 1024 \
+    --max_length 2048 \
     --remove_unused_columns False \
     --optim adamw_torch \
     --gradient_checkpointing \
@@ -23,7 +23,7 @@ python pairwise_reward_model.py \
     --eval_steps 100 \
     --load_best_model_at_end \
     --report_to wandb \
-    --push_to_hub \
+    --push_to_hub True \
     --bf16 \
     --logging_first_step \
     --use_peft \

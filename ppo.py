@@ -1,7 +1,13 @@
-import shutil
-from dataclasses import dataclass
+"""
+Script to finetune an LLM with PPOv2.
+
+Script adapted from the TRL library:
+https://github.com/huggingface/trl/blob/main/examples/scripts/ppo/ppo.py
+"""
+
 import logging
 import time
+from dataclasses import dataclass
 
 import wandb
 from datasets import load_dataset
@@ -39,13 +45,10 @@ class ScriptArguments:
 if __name__ == "__main__":
     parser = HfArgumentParser((ScriptArguments, PPOv2Config, ModelConfig))
     script_args, config, model_config = parser.parse_args_into_dataclasses()
-    # remove output_dir if exists
-    shutil.rmtree(config.output_dir, ignore_errors=True)
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += (
-        f"_{script_args.dataset_name.split('/')[-1]}_{time.strftime('%Y%m%d_%H%M%S')}"
-    )
+    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    config.output_dir = config.output_dir.replace("_", "-")
     config.run_name = config.output_dir
 
     # PPOv2 Trainer does not suppor run_name
@@ -99,9 +102,11 @@ if __name__ == "__main__":
     # Dataset
     ################
     logger.info("Loading the dataset...")
+    eval_samples = 20
     raw_datasets = load_dataset(script_args.dataset_name)
     train_dataset = raw_datasets[script_args.train_split]
     eval_dataset = raw_datasets[script_args.test_split]
+    eval_dataset = eval_dataset.select(range(eval_samples))
     dataset_text_field = "prompt"
 
     def prepare_dataset(dataset, tokenizer):
