@@ -1,21 +1,24 @@
 # SFT full training onn RLHF dataset
 
 python sft.py \
-    --model_name_or_path google/gemma-2-2b \
+    --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --dataset_train_split train_sft \
     --dataset_test_split test_sft \
     --dataset_text_field chosen \
     --output_dir logs/sft \
     --torch_dtype bfloat16 \
-    --attn_implementation eager \
-    --learning_rate=1.41e-5 \
-    --per_device_train_batch_size=8 \
-    --gradient_accumulation_steps=128 \
+    --attn_implementation flash_attention_2 \
+    --learning_rate=2.0e-04 \
+    --lr_scheduler_type cosine \
+    --warmup_ratio 0.1 \
+    --per_device_train_batch_size=32 \
+    --per_device_eval_batch_size=64 \
+    --gradient_accumulation_steps=1 \
     --gradient_checkpointing \
     --logging_steps=1 \
-    --num_train_epochs=3 \
-    --max_steps=-1 \
+    --num_train_epochs=1 \
+    --max_steps=-1 \    
     --eval_strategy steps \
     --eval_steps 20 \
     --save_steps 20 \
@@ -26,7 +29,7 @@ python sft.py \
     --logging_first_step \
     --use_peft \
     --load_in_4bit \
-    --lora_r 128 \
-    --lora_alpha 128 \
+    --lora_r 16 \
+    --lora_alpha 16 \
     --lora_dropout 0.05 \
     --lora_target_modules q_proj k_proj v_proj o_proj gate_proj up_proj down_proj

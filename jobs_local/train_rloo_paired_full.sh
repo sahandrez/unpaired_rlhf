@@ -4,7 +4,7 @@
 python rloo.py \
     --model_name_or_path google/gemma-2-2b \
     --sft_model_path sahandrez/sft-gemma-2-2b-ultrafeedback \
-    --reward_model_path sahandrez/pairwise-reward-gemma-2-2b-it-ultrafeedback \
+    --reward_model_path sahandrez/pairwise-reward-gemma-2-2b-ultrafeedback \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --unpaired False \
     --dataset_train_split "train_prefs" \
@@ -22,9 +22,9 @@ python rloo.py \
     --local_rollout_forward_batch_size 1 \
     --gradient_accumulation_steps 16 \
     --gradient_checkpointing \
-    --total_episodes 50000 \
+    --total_episodes 100000 \
     --missing_eos_penalty 1.0 \
     --report_to wandb \
     --push_to_hub True \
     --bf16 \
-    --logging_first_step
+    --logging_first_step \

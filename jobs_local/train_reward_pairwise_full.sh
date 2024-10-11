@@ -2,7 +2,7 @@
 # Tested with google/gemma-2-2b-it on a single A100 GPU
 
 python pairwise_reward_model.py \
-    --model_name_or_path google/gemma-2-2b-it \
+    --model_name_or_path google/gemma-2-2b \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --dataset_train_split "train_prefs" \
     --dataset_test_split "test_prefs" \
