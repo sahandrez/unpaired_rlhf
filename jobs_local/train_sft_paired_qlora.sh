@@ -18,7 +18,7 @@ python sft.py \
     --gradient_checkpointing \
     --logging_steps=1 \
     --num_train_epochs=1 \
-    --max_steps=-1 \    
+    --max_steps=-1 \
     --eval_strategy steps \
     --eval_steps 20 \
     --save_steps 20 \
