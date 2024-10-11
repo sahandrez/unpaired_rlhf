@@ -11,11 +11,11 @@ python sft.py \
     --torch_dtype bfloat16 \
     --attn_implementation eager \
     --learning_rate=1.41e-5 \
-    --per_device_train_batch_size=8 \
-    --gradient_accumulation_steps=128 \
+    --per_device_train_batch_size=16 \
+    --gradient_accumulation_steps=2 \
     --gradient_checkpointing \
     --logging_steps=1 \
-    --num_train_epochs=3 \
+    --num_train_epochs=1 \
     --max_steps=-1 \
     --eval_strategy steps \
     --eval_steps 20 \

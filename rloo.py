@@ -20,9 +20,7 @@ from transformers import (
 )
 
 from trl import ModelConfig, get_peft_config, setup_chat_format
-from trl.extras.dataset_formatting import conversations_formatting_function
-from unpaired_rlhf.trainer.rloo_trainer import RLOOTrainer
-from unpaired_rlhf.trainer.rloo_config import RLOOConfig
+from trl.trainer.rloo_trainer import RLOOConfig, RLOOTrainer
 
 # from unpaired_rlhf.trainer.unpaired_rloo_trainer import UnpairedRLOOTrainer
 from unpaired_rlhf.trainer.utils import wrap_peft

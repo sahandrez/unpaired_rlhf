@@ -70,6 +70,8 @@ if __name__ == "__main__":
         trust_remote_code=model_config.trust_remote_code,
         use_fast=True,
     )
+    tokenizer.pad_token = tokenizer.eos_token
+    
     # Align padding tokens between tokenizer and model
     model.config.pad_token_id = tokenizer.pad_token_id
 
