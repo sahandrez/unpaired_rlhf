@@ -1,6 +1,12 @@
 # RLOO with paired feedback with QLoRA
 # Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
 
+export CUDA_VISIBLE_DEVICES="0"
+export WANDB_ENTITY="unpaired_rlhf"
+export WANDB_PROJECT="samin"
+export WANDB_API_KEY="9ec53be89dd54c809ecb63fb1b651d7b2f3dfb11"
+export HF_TOKEN="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"
+
 python rloo.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --sft_model_path alignment-handbook/zephyr-7b-sft-qlora \

@@ -3,8 +3,8 @@
 export CUDA_VISIBLE_DEVICES="0"
 export WANDB_ENTITY="unpaired_rlhf"
 export WANDB_PROJECT="samin"
-export WANDB_API_KEY=""
-export HF_TOKEN=""
+# export WANDB_API_KEY=""
+# export HF_TOKEN=""
 
 # -----------------------------------
 # compare model with chosen response
@@ -27,7 +27,12 @@ export HF_TOKEN=""
 #                     --num_examples=1000 \
 #                     --judge_model=meta-llama/Meta-Llama-3.1-8b-Instruct
 
-python ./llm_judge/judge_1v1.py --model_1=sahandrez/kto-gemma-2-2b-ultrafeedback \
-                    --model_0=google/gemma-2-2b \
+# python ./llm_judge/judge_1v1.py --model_1=sahandrez/kto-gemma-2-2b-ultrafeedback \
+#                     --model_0=google/gemma-2-2b \
+#                     --num_examples=1000 \
+#                     --judge_model=meta-llama/Meta-Llama-3.1-8b-Instruct
+
+python ./llm_judge/judge_1v1.py --model_0=sahandrez/rloo-paired-gemma-2-2b-ultrafeedback-binarized-20241010-141032 \
+                    --model_1=sahandrez/sft-gemma-2-2b-ultrafeedback \
                     --num_examples=1000 \
                     --judge_model=meta-llama/Meta-Llama-3.1-8b-Instruct
