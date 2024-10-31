@@ -54,7 +54,8 @@ from trl.trainer.utils import (
     print_rich_table,
     truncate_response,
 )
-from trl.trainer.rloo_config import RLOOConfig
+#from trl.trainer.rloo_config import RLOOConfig
+from unpaired_rlhf.trainer.rloo_config import RLOOConfig
 from trl.trainer.utils import trl_sanitze_kwargs_for_tagging
 
 
