@@ -143,6 +143,6 @@ if __name__ == "__main__":
     ################
     logger.info("Evaluating the model...")
     metrics = trainer.evaluate()
-    metrics["eval_samples"] = len(dataset[args.dataset_test_split])
+    metrics["eval_samples"] = len(eval_dataset)
     trainer.log_metrics("eval", metrics)
     trainer.save_metrics("eval", metrics)
