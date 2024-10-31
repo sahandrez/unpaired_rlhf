@@ -80,31 +80,44 @@ if __name__ == "__main__":
     model.config.pad_token_id = tokenizer.pad_token_id
 
     # If post-training a base model, use ChatML as the default template
-    if tokenizer.chat_template is None:
-        model, tokenizer = setup_chat_format(model, tokenizer)
+    # if tokenizer.chat_template is None:
+    #     model, tokenizer = setup_chat_format(model, tokenizer)
 
     ################
     # Dataset
     ################
-    logger.info("Loading the dataset...")
-    dataset = load_dataset(args.dataset_name)
-    dataset = DatasetDict(
-        {
-            args.dataset_train_split: dataset[args.dataset_train_split],
-            args.dataset_test_split: dataset[args.dataset_test_split],
-        }
-    )
+    raw_datasets = load_dataset(args.dataset_name)
+    train_dataset = raw_datasets["train"]
+    eval_dataset = raw_datasets["validation"]
 
-    with PartialState().local_main_process_first():
-        # Wrap inputs with chat template.
-        # This assumes the columns are in the OpenAI messages format.
-        completion_fn = conversations_formatting_function(
-            tokenizer, config.dataset_text_field
-        )
-        dataset = dataset.map(
-            lambda x: {config.dataset_text_field: completion_fn(x)},
+    def prepare_dataset(dataset, tokenizer):
+        """pre-tokenize the dataset before training; only collate during training"""
+
+        def tokenize(element):
+            input_ids = tokenizer.apply_chat_template(
+                element["messages"][:1],
+                padding=False,
+                add_generation_prompt=True,
+            )
+            return {"input_ids": input_ids, "lengths": len(input_ids)}
+
+        return dataset.map(
+            tokenize,
+            remove_columns=dataset.column_names,
+            load_from_cache_file=True,
             num_proc=config.dataset_num_proc,
         )
+
+    # Compute that only on the main process for faster data processing.
+    # see: https://github.com/huggingface/trl/pull/1255
+    with PartialState().local_main_process_first():
+        train_dataset = prepare_dataset(train_dataset, tokenizer)
+        eval_dataset = prepare_dataset(eval_dataset, tokenizer)
+        # filtering
+        train_dataset = train_dataset.filter(lambda x: x["lengths"] <= 512, num_proc=config.dataset_num_proc)
+        eval_dataset = eval_dataset.filter(lambda x: x["lengths"] <= 512, num_proc=config.dataset_num_proc)
+
+    assert train_dataset[0]["input_ids"][-1] != tokenizer.eos_token_id, "The last token should not be an EOS token"
 
     ################
     # Training
@@ -112,8 +125,8 @@ if __name__ == "__main__":
     trainer = SFTTrainer(
         model=model,
         args=config,
-        train_dataset=dataset[args.dataset_train_split],
-        eval_dataset=dataset[args.dataset_test_split],
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         tokenizer=tokenizer,
         peft_config=get_peft_config(model_config),
     )
