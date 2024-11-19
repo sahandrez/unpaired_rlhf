@@ -8,10 +8,9 @@ https://github.com/huggingface/trl/blob/main/examples/scripts/reward_modeling.py
 import warnings
 import logging
 import time
+from dataclasses import dataclass
 
 import torch
-from tqdm import tqdm
-
 from datasets import load_dataset, DatasetDict
 from accelerate import PartialState
 from transformers import (
@@ -28,27 +27,38 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-from trl.commands.cli_utils import RewardScriptArguments
+
+# from trl.trainer.utils import SIMPLE_QUERY_CHAT_TEMPLATE
 from trl.extras.dataset_formatting import conversations_formatting_function
 
 from unpaired_rlhf.utils.runtime import set_seed
 
-
-tqdm.pandas()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class ScriptArguments:
+    """
+    The arguments for the Reward Model training script.
+    """
+
+    dataset_name: str = "trl-internal-testing/tldr-preference-trl-style"
+    dataset_train_split: str = "train"
+    dataset_test_split: str = "validation"
+    unpaired: bool = False
+
+
 if __name__ == "__main__":
-    parser = HfArgumentParser((RewardScriptArguments, RewardConfig, ModelConfig))
+    parser = HfArgumentParser((ScriptArguments, RewardConfig, ModelConfig))
     args, config, model_config = parser.parse_args_into_dataclasses()
     config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    config.output_dir = config.output_dir.replace("_", "-")
+    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    config.output_dir = config.output_dir.replace("_", "-").replace("--", "-")
     config.run_name = config.output_dir
 
     # Set seed everywhere
