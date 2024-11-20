@@ -10,31 +10,26 @@ import logging
 import time
 
 import torch
-from tqdm import tqdm
-
-from datasets import load_dataset, DatasetDict
-from accelerate import PartialState
+from datasets import load_dataset
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     HfArgumentParser,
 )
+
 from trl import (
     ModelConfig,
     RewardConfig,
     RewardTrainer,
-    setup_chat_format,
+    ScriptArguments,
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
+    setup_chat_format,
 )
-from trl.commands.cli_utils import RewardScriptArguments
-from trl.extras.dataset_formatting import conversations_formatting_function
 
 from unpaired_rlhf.utils.runtime import set_seed
 
-
-tqdm.pandas()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -42,17 +37,17 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((RewardScriptArguments, RewardConfig, ModelConfig))
-    args, config, model_config = parser.parse_args_into_dataclasses()
-    config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
+    parser = HfArgumentParser((ScriptArguments, RewardConfig, ModelConfig))
+    script_args, training_args, model_config = parser.parse_args_into_dataclasses()
+    training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    config.output_dir = config.output_dir.replace("_", "-")
-    config.run_name = config.output_dir
+    training_args.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    training_args.output_dir = training_args.output_dir.replace("_", "-")
+    training_args.run_name = training_args.output_dir
 
     # Set seed everywhere
-    set_seed(config.seed)
+    set_seed(training_args.seed)
 
     ################
     # Model & Tokenizer
@@ -100,56 +95,7 @@ if __name__ == "__main__":
     # Dataset
     ################
     logger.info("Loading the dataset...")
-    dataset = load_dataset(args.dataset_name)
-    dataset = DatasetDict(
-        {
-            args.dataset_train_split: dataset[args.dataset_train_split],
-            args.dataset_test_split: dataset[args.dataset_test_split],
-        }
-    )
-
-    def preprocess_function(examples):
-        new_examples = {
-            "input_ids_chosen": [],
-            "attention_mask_chosen": [],
-            "input_ids_rejected": [],
-            "attention_mask_rejected": [],
-        }
-        for chosen, rejected in zip(examples["chosen"], examples["rejected"]):
-            tokenized_chosen = tokenizer(chosen)
-            tokenized_rejected = tokenizer(rejected)
-            new_examples["input_ids_chosen"].append(tokenized_chosen["input_ids"])
-            new_examples["attention_mask_chosen"].append(
-                tokenized_chosen["attention_mask"]
-            )
-            new_examples["input_ids_rejected"].append(tokenized_rejected["input_ids"])
-            new_examples["attention_mask_rejected"].append(
-                tokenized_rejected["attention_mask"]
-            )
-
-        return new_examples
-
-    with PartialState().local_main_process_first():
-        # Wrap inputs with chat template.
-        # This assumes the chosen/rejected columns are in the OpenAI messages format.
-        chosen_fn = conversations_formatting_function(tokenizer, "chosen")
-        rejected_fn = conversations_formatting_function(tokenizer, "rejected")
-        dataset = dataset.map(
-            lambda x: {"chosen": chosen_fn(x), "rejected": rejected_fn(x)},
-            num_proc=config.dataset_num_proc,
-        )
-        # Tokenize inputs
-        dataset = dataset.map(
-            preprocess_function,
-            batched=True,
-            num_proc=config.dataset_num_proc,
-        )
-        # Filter out examples that are too long
-        dataset = dataset.filter(
-            lambda x: len(x["input_ids_chosen"]) <= config.max_length
-            and len(x["input_ids_rejected"]) <= config.max_length,
-            num_proc=config.dataset_num_proc,
-        )
+    dataset = load_dataset(script_args.dataset_name)
 
     ################
     # Training
@@ -157,17 +103,19 @@ if __name__ == "__main__":
     trainer = RewardTrainer(
         model=model,
         tokenizer=tokenizer,
-        args=config,
-        train_dataset=dataset[args.dataset_train_split],
-        eval_dataset=dataset[args.dataset_test_split],
+        args=training_args,
+        train_dataset=dataset[script_args.dataset_train_split],
+        eval_dataset=dataset[script_args.dataset_test_split],
         peft_config=get_peft_config(model_config),
     )
-
-    # Train and push the model to the Hub
     logger.info("Starting training...")
     trainer.train()
-    trainer.save_model(config.output_dir)
-    if config.push_to_hub:
+
+    ############################
+    # Save model and push to Hub
+    ############################
+    trainer.save_model(training_args.output_dir)
+    if training_args.push_to_hub:
         trainer.push_to_hub()
     logger.info("Training complete.")
 
@@ -176,5 +124,4 @@ if __name__ == "__main__":
     metrics = trainer.evaluate()
     trainer.log_metrics("eval", metrics)
     trainer.save_metrics("eval", metrics)
-    print(metrics)
     logger.info("Evaluation complete.")
