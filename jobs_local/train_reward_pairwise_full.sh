@@ -15,10 +15,10 @@ python pairwise_reward_model.py \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 64 \
     --gradient_accumulation_steps 1 \
+    --gradient_checkpointing \
     --num_train_epochs 1 \
     --learning_rate 5e-6 \
     --max_length 2048 \
-    --gradient_checkpointing \
     --logging_steps 10 \
     --eval_strategy steps \
     --eval_steps 100 \
