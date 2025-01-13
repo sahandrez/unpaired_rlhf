@@ -20,10 +20,11 @@ python sft.py \
     --num_train_epochs=1 \
     --learning_rate 5e-6 \
     --max_seq_length 2048 \
+    --packing \
     --max_steps=-1 \
     --logging_steps=10 \
     --eval_strategy steps \
-    --eval_steps 100 \
+    --eval_steps 50 \
     --load_best_model_at_end \
     --report_to wandb \
     --push_to_hub True \

@@ -71,7 +71,7 @@ if __name__ == "__main__":
         trainer_cls = RLOOTrainer
         num_labels = 1
 
-        ################
+    ################
     # Model & Tokenizer
     ################
     tokenizer = AutoTokenizer.from_pretrained(
@@ -98,8 +98,8 @@ if __name__ == "__main__":
     if config.sanity_check:
         for key in raw_datasets:
             raw_datasets[key] = raw_datasets[key].select(range(1000))
-    train_dataset = raw_datasets["train"]
-    eval_dataset = raw_datasets["validation"]
+    train_dataset = raw_datasets[args.dataset_train_split]
+    eval_dataset = raw_datasets[args.dataset_test_split]
 
     def prepare_dataset(dataset, tokenizer):
         """pre-tokenize the dataset before training; only collate during training"""
