@@ -1,27 +1,30 @@
 # SFT full training onn RLHF dataset
+# Dataset options: 
+#   * trl-lib/ultrafeedback_binarized (train, test)
+# Model options:
+#   * alignment-handbook/zephyr-7b-sft-qlora
 
 python sft.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
-    --dataset_train_split train_sft \
-    --dataset_test_split test_sft \
-    --dataset_text_field chosen \
+    --dataset_train_split train_prefs \
+    --dataset_test_split test_prefs \
+    --dataset_text_field messages \
     --output_dir logs/sft \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
-    --learning_rate=2.0e-04 \
-    --lr_scheduler_type cosine \
-    --warmup_ratio 0.1 \
-    --per_device_train_batch_size=32 \
-    --per_device_eval_batch_size=64 \
-    --gradient_accumulation_steps=1 \
+    --per_device_train_batch_size=16 \
+    --per_device_eval_batch_size=32 \
+    --gradient_accumulation_steps=2 \
     --gradient_checkpointing \
-    --logging_steps=1 \
     --num_train_epochs=1 \
+    --learning_rate 5e-6 \
+    --max_seq_length 2048 \
+    --packing \
     --max_steps=-1 \
+    --logging_steps=10 \
     --eval_strategy steps \
-    --eval_steps 20 \
-    --save_steps 20 \
+    --eval_steps 50 \
     --load_best_model_at_end \
     --report_to wandb \
     --push_to_hub True \

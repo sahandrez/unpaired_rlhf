@@ -1,0 +1,24 @@
+python rloo_tldr.py \
+    --model_name_or_path=EleutherAI/pythia-1b-deduped \
+    --sft_model_path=saminyeasar/sft-pythia-1b-deduped-tldr-preference-sft-trl \
+    --reward_model_path=cleanrl/EleutherAI_pythia-1b-deduped__reward__tldr \
+    --dataset_name=trl-internal-testing/tldr-preference-sft-trl-style \
+    --learning_rate=3e-6 \
+    --per_device_train_batch_size=1 \
+    --gradient_accumulation_steps=64 \
+    --total_episodes=30000 \
+    --response_length=53 \
+    --output_dir=logs/rloo \
+    --gradient_checkpointing=True \
+    --max_steps=-1 \
+    --num_train_epochs=1 \
+    --logging_steps=1 \
+    --eval_strategy=steps \
+    --eval_steps=20 \
+    --save_steps=20 \
+    --report_to=wandb \
+    --push_to_hub=True \
+    --logging_first_step=True \
+    --torch_dtype=bfloat16 \
+    --missing_eos_penalty=1.0 \
+    --stop_token=eos

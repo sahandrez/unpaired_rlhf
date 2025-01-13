@@ -1,22 +1,23 @@
-# RLOO with paired feedback with QLoRA
-# Tested with google/gemma-2-2b-it on a single A100 GPU
+# RLOO full training with paired feedback 
+# Dataset options: 
+#   * HubHuggingFace/ultrafeedback_binarized (train_prefs, test_prefs)
+# Model options:
+#   * Qwen/Qwen2.5-1.5B
 
 python rloo.py \
-    --model_name_or_path google/gemma-2-2b \
-    --sft_model_path sahandrez/sft-gemma-2-2b-ultrafeedback \
-    --reward_model_path sahandrez/pairwise-reward-gemma-2-2b-ultrafeedback \
+    --model_name_or_path Qwen/Qwen2.5-1.5B \
+    --sft_model_path sahandrez/sft-Qwen2.5-1.5B-ultrafeedback \
+    --reward_model_path sahandrez/pairwise-reward-Qwen2.5-1.5B-ultrafeedback \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
-    --unpaired False \
     --dataset_train_split "train_prefs" \
     --dataset_test_split "test_prefs" \
-    --dataset_text_field "prompt" \
     --output_dir logs/rloo-paired \
+    --torch_dtype bfloat16 \
+    --attn_implementation flash_attention_2 \
     --num_ppo_epochs 1 \
     --rloo_k 2 \
     --num_mini_batches 1 \
     --learning_rate 5e-6 \
-    --attn_implementation eager \
-    --torch_dtype bfloat16 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --local_rollout_forward_batch_size 1 \

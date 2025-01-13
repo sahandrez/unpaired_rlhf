@@ -7,27 +7,23 @@ https://github.com/huggingface/trl/blob/main/examples/scripts/sft.py
 
 import logging
 import time
-from tqdm.rich import tqdm
 
-from accelerate import PartialState
-from datasets import load_dataset, DatasetDict
+import torch
+from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from trl import (
     ModelConfig,
+    ScriptArguments,
     SFTConfig,
     SFTTrainer,
+    TrlParser,
     setup_chat_format,
+    get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
-    get_kbit_device_map,
 )
-from trl.extras.dataset_formatting import conversations_formatting_function
-from trl.commands.cli_utils import SFTScriptArguments, TrlParser
 
 from unpaired_rlhf.utils.runtime import set_seed
-
-
-tqdm.pandas()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -35,29 +31,34 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    parser = TrlParser((SFTScriptArguments, SFTConfig, ModelConfig))
-    args, config, model_config = parser.parse_args_and_config()
-    config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
+    parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
+    script_args, training_args, model_config = parser.parse_args_and_config()
+    training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    config.output_dir = config.output_dir.replace("_", "-")
-    config.run_name = config.output_dir
+    training_args.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    training_args.output_dir = training_args.output_dir.replace("_", "-")
+    training_args.run_name = training_args.output_dir
 
     # Set seed everywhere
-    set_seed(config.seed)
+    set_seed(training_args.seed)
 
     ################
     # Model init kwargs & Tokenizer
     ################
     logger.info("Loading the pretrained model...")
+    torch_dtype = (
+        model_config.torch_dtype
+        if model_config.torch_dtype in ["auto", None]
+        else getattr(torch, model_config.torch_dtype)
+    )
     quantization_config = get_quantization_config(model_config)
     model_kwargs = dict(
         revision=model_config.model_revision,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
         use_cache=False,
-        torch_dtype=model_config.torch_dtype,
+        torch_dtype=torch_dtype,
         attn_implementation=model_config.attn_implementation,
     )
     model = AutoModelForCausalLM.from_pretrained(
@@ -83,41 +84,24 @@ if __name__ == "__main__":
     # Dataset
     ################
     logger.info("Loading the dataset...")
-    dataset = load_dataset(args.dataset_name)
-    dataset = DatasetDict(
-        {
-            args.dataset_train_split: dataset[args.dataset_train_split],
-            args.dataset_test_split: dataset[args.dataset_test_split],
-        }
-    )
-
-    with PartialState().local_main_process_first():
-        # Wrap inputs with chat template.
-        # This assumes the columns are in the OpenAI messages format.
-        completion_fn = conversations_formatting_function(
-            tokenizer, config.dataset_text_field
-        )
-        dataset = dataset.map(
-            lambda x: {config.dataset_text_field: completion_fn(x)},
-            num_proc=config.dataset_num_proc,
-        )
+    dataset = load_dataset(script_args.dataset_name)
 
     ################
     # Training
     ################
     trainer = SFTTrainer(
         model=model,
-        args=config,
-        train_dataset=dataset[args.dataset_train_split],
-        eval_dataset=dataset[args.dataset_test_split],
+        args=training_args,
+        train_dataset=dataset[script_args.dataset_train_split],
+        eval_dataset=dataset[script_args.dataset_test_split],
         tokenizer=tokenizer,
         peft_config=get_peft_config(model_config),
     )
 
     logger.info("Starting training...")
     trainer.train()
-    trainer.save_model(config.output_dir)
-    if config.push_to_hub:
+    trainer.save_model(training_args.output_dir)
+    if training_args.push_to_hub:
         trainer.push_to_hub()
     logger.info("Training complete.")
 
@@ -126,6 +110,6 @@ if __name__ == "__main__":
     ################
     logger.info("Evaluating the model...")
     metrics = trainer.evaluate()
-    metrics["eval_samples"] = len(dataset[args.dataset_test_split])
+    metrics["eval_samples"] = len(dataset[script_args.dataset_test_split])
     trainer.log_metrics("eval", metrics)
     trainer.save_metrics("eval", metrics)
