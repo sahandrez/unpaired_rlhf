@@ -1,6 +1,6 @@
-# SFT full training onn RLHF dataset
+# SFT full training
 # Dataset options: 
-#   * HubHuggingFace/ultrafeedback_binarized (train_prefs, test_prefs)
+#   * HuggingFaceH4/ultrafeedback_binarized (train_prefs, test_prefs)
 # Model options:
 #   * Qwen/Qwen2.5-1.5B
 

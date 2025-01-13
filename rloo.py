@@ -2,14 +2,13 @@
 Script to finetune an LLM with RLOO.
 
 Script adapted from the TRL library:
-https://github.com/huggingface/trl/blob/main/examples/scripts/rloo/rloo.py
+https://github.com/huggingface/trl/blob/v0.13.0/examples/scripts/rloo/rloo.py
 """
 
 import logging
 import time
 import wandb
 
-import torch
 from accelerate import PartialState
 from datasets import load_dataset
 from transformers import (
@@ -20,13 +19,14 @@ from transformers import (
 )
 from trl import (
     ModelConfig,
+    RLOOConfig,
+    RLOOTrainer,
+    ScriptArguments,
     get_peft_config,
-    setup_chat_format,
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
 )
-from trl import ModelConfig, RLOOConfig, RLOOTrainer, ScriptArguments
 from trl.trainer.utils import SIMPLE_CHAT_TEMPLATE
 
 from unpaired_rlhf.trainer.utils import wrap_peft
@@ -40,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = HfArgumentParser((ScriptArguments, RLOOConfig, ModelConfig))
-    script_args, training_args, model_config = parser.parse_args_into_dataclasses()
+    script_args, training_args, model_args = parser.parse_args_into_dataclasses()
 
     # Add dataset name and a timestamp to the output directory
-    training_args.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    training_args.output_dir += f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
     training_args.output_dir = training_args.output_dir.replace("_", "-")
     training_args.run_name = training_args.output_dir
 
@@ -62,19 +62,15 @@ if __name__ == "__main__":
     # Model & Tokenizer
     ################
     logger.info("Loading the pretrained models...")
-    torch_dtype = (
-        model_config.torch_dtype
-        if model_config.torch_dtype in ["auto", None]
-        else getattr(torch, model_config.torch_dtype)
-    )
-    quantization_config = get_quantization_config(model_config)
+    quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
-        revision=model_config.model_revision,
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        attn_implementation=model_args.attn_implementation,
+        torch_dtype=model_args.torch_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
-        use_cache=False,
-        torch_dtype=torch_dtype,
-        attn_implementation=model_config.attn_implementation,
     )
     reward_model = AutoModelForSequenceClassification.from_pretrained(
         training_args.reward_model_path, num_labels=num_labels, **model_kwargs
@@ -87,30 +83,18 @@ if __name__ == "__main__":
     )
 
     # Get the PEFT models
-    if model_config.use_peft:
-        policy = wrap_peft(policy, training_args, get_peft_config(model_config))
+    if model_args.use_peft:
+        policy = wrap_peft(policy, training_args, get_peft_config(model_args))
 
     # Get the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
-        model_config.model_name_or_path,
+        model_args.model_name_or_path,
         padding_side="left",
         trust_remote_code=True,
     )
-
     tokenizer.add_special_tokens({"pad_token": "[PAD]"})
     if tokenizer.chat_template is None:
         tokenizer.chat_template = SIMPLE_CHAT_TEMPLATE
-
-    # Align padding tokens between tokenizer and model
-    # reward_model.config.pad_token_id = tokenizer.pad_token_id
-    # ref_policy.config.pad_token_id = tokenizer.pad_token_id
-    # policy.config.pad_token_id = tokenizer.pad_token_id
-
-    # # If post-training a base model, use ChatML as the default template
-    # if tokenizer.chat_template is None:
-    #     reward_model, tokenizer = setup_chat_format(reward_model, tokenizer)
-    #     ref_policy, _ = setup_chat_format(ref_policy, tokenizer)
-    #     policy, _ = setup_chat_format(policy, tokenizer)
 
     ################
     # Dataset

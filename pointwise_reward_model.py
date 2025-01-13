@@ -11,9 +11,6 @@ import logging
 import time
 import numpy as np
 
-import torch
-from tqdm import tqdm
-
 import evaluate
 from datasets import load_dataset, DatasetDict
 from accelerate import PartialState
@@ -27,19 +24,17 @@ from transformers import (
 from trl import (
     ModelConfig,
     RewardConfig,
+    ScriptArguments,
     setup_chat_format,
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
 )
-from trl.commands.cli_utils import RewardScriptArguments
 from trl.extras.dataset_formatting import conversations_formatting_function
 
 from unpaired_rlhf.utils.runtime import set_seed
 from unpaired_rlhf.trainer.utils import wrap_peft
 
-
-tqdm.pandas()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -47,17 +42,17 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    parser = HfArgumentParser((RewardScriptArguments, RewardConfig, ModelConfig))
-    args, config, model_config = parser.parse_args_into_dataclasses()
-    config.gradient_checkpointing_kwargs = dict(use_reentrant=False)
+    parser = HfArgumentParser((ScriptArguments, RewardConfig, ModelConfig))
+    script_args, training_args, model_args = parser.parse_args_into_dataclasses()
+    training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
 
     # Add dataset name and a timestamp to the output directory
-    config.output_dir += f"-{model_config.model_name_or_path.split('/')[-1]}-{args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
-    config.output_dir = config.output_dir.replace("_", "-")
-    config.run_name = config.output_dir
+    training_args.output_dir += f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
+    training_args.output_dir = training_args.output_dir.replace("_", "-")
+    training_args.run_name = training_args.output_dir
 
     # Set seed everywhere
-    set_seed(config.seed)
+    set_seed(training_args.seed)
 
     # Define label2id and id2label
     id2label = {0: "BAD", 1: "GOOD"}
@@ -67,31 +62,26 @@ if __name__ == "__main__":
     # Model & Tokenizer
     ################
     logger.info("Loading the pretrained model...")
-    torch_dtype = (
-        model_config.torch_dtype
-        if model_config.torch_dtype in ["auto", None]
-        else getattr(torch, model_config.torch_dtype)
-    )
-    quantization_config = get_quantization_config(model_config)
+    quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
-        revision=model_config.model_revision,
+        revision=model_args.model_revision,
+        trust_remote_code=model_args.trust_remote_code,
+        attn_implementation=model_args.attn_implementation,
+        torch_dtype=model_args.torch_dtype,
+        use_cache=False if training_args.gradient_checkpointing else True,
         device_map=get_kbit_device_map() if quantization_config is not None else None,
         quantization_config=quantization_config,
-        use_cache=False,
-        torch_dtype=torch_dtype,
-        attn_implementation=model_config.attn_implementation,
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        model_config.model_name_or_path,
-        trust_remote_code=model_config.trust_remote_code,
+        model_args.model_name_or_path,
         num_labels=2,
         id2label=id2label,
         label2id=label2id,
         **model_kwargs,
     )
     tokenizer = AutoTokenizer.from_pretrained(
-        model_config.model_name_or_path,
-        trust_remote_code=model_config.trust_remote_code,
+        model_args.model_name_or_path,
+        trust_remote_code=model_args.trust_remote_code,
         use_fast=True,
     )
     # Align padding tokens between tokenizer and model
@@ -101,25 +91,25 @@ if __name__ == "__main__":
     if tokenizer.chat_template is None:
         model, tokenizer = setup_chat_format(model, tokenizer)
 
-    if model_config.lora_task_type != "SEQ_CLS":
+    if model_args.lora_task_type != "SEQ_CLS":
         warnings.warn(
             "You are using a `task_type` that is different than `SEQ_CLS` for PEFT. This will lead to silent bugs"
             " Make sure to pass --lora_task_type SEQ_CLS when using this script."
         )
 
     # Get the PEFT model
-    if model_config.use_peft:
-        model = wrap_peft(model, config, get_peft_config(model_config))
+    if model_args.use_peft:
+        model = wrap_peft(model, training_args, get_peft_config(model_args))
 
     ################
     # Dataset
     ################
     logger.info("Loading the dataset...")
-    dataset = load_dataset(args.dataset_name)
+    dataset = load_dataset(script_args.dataset_name)
     dataset = DatasetDict(
         {
-            args.dataset_train_split: dataset[args.dataset_train_split],
-            args.dataset_test_split: dataset[args.dataset_test_split],
+            script_args.dataset_train_split: dataset[script_args.dataset_train_split],
+            script_args.dataset_test_split: dataset[script_args.dataset_test_split],
         }
     )
 
@@ -132,19 +122,19 @@ if __name__ == "__main__":
         completion_fn = conversations_formatting_function(tokenizer, "completion")
         dataset = dataset.map(
             lambda x: {"completion": completion_fn(x)},
-            num_proc=config.dataset_num_proc,
+            num_proc=training_args.dataset_num_proc,
         )
         # Tokenize inputs
         dataset = dataset.map(
             preprocess_function,
             batched=True,
-            num_proc=config.dataset_num_proc,
+            num_proc=training_args.dataset_num_proc,
             remove_columns=["prompt", "completion"],
         )
         # Filter out examples that are too long
         dataset = dataset.filter(
-            lambda x: len(x["input_ids"]) <= config.max_length,
-            num_proc=config.dataset_num_proc,
+            lambda x: len(x["input_ids"]) <= training_args.max_length,
+            num_proc=training_args.dataset_num_proc,
         )
 
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
@@ -162,9 +152,9 @@ if __name__ == "__main__":
     trainer = Trainer(
         model=model,
         tokenizer=tokenizer,
-        args=config,
-        train_dataset=dataset[args.dataset_train_split],
-        eval_dataset=dataset[args.dataset_test_split],
+        args=training_args,
+        train_dataset=dataset[script_args.dataset_train_split],
+        eval_dataset=dataset[script_args.dataset_test_split],
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
@@ -172,8 +162,8 @@ if __name__ == "__main__":
     # Train and push the model to the Hub
     logger.info("Starting training...")
     trainer.train()
-    trainer.save_model(config.output_dir)
-    if config.push_to_hub:
+    trainer.save_model(training_args.output_dir)
+    if training_args.push_to_hub:
         trainer.push_to_hub()
     logger.info("Training complete.")
 

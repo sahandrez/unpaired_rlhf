@@ -1,10 +1,13 @@
 # RLOO with paired feedback with QLoRA
-# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
+# Dataset options: 
+#   * HuggingFaceH4/ultrafeedback_binarized (train_prefs, test_prefs)
+# Model options:
+#   * alignment-handbook/zephyr-7b-sft-qlora
 
 python rloo.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
     --sft_model_path alignment-handbook/zephyr-7b-sft-qlora \
-    --reward_model_path sahandrez/pairwise-reward-zephyr-7b-sft-qlora-ultrafeedback \
+    --reward_model_path sahandrez/pairwise-reward-zephyr-7b-sft-qlora-uf \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --unpaired False \
     --dataset_train_split "train_prefs" \

@@ -1,5 +1,9 @@
 # Trains a pointwise reward model (full training)
-# Tested with google/gemma-2-2b-it on a single A100 GPU
+# Dataset options: 
+#   * sahandrez/ultrafeedback_unpaired (train, test)
+# Model options:
+#   * Qwen/Qwen2.5-1.5B
+#   * sahandrez/Qwen2.5-1.5B-sft-uf
 
 python pointwise_reward_model.py \
     --model_name_or_path google/gemma-2-2b \
