@@ -5,13 +5,14 @@
 #   * Qwen/Qwen2.5-1.5B
 
 python rloo.py \
+    --unpaired True \
     --model_name_or_path Qwen/Qwen2.5-1.5B \
     --sft_model_path sahandrez/Qwen2.5-1.5B-sft-uf \
-    --reward_model_path sahandrez/pairwise-reward-Qwen2.5-1.5B-sft-uf \
+    --reward_model_path sahandrez/pointwise-reward-Qwen2.5-1.5B-sft-uf \
     --dataset_name HuggingFaceH4/ultrafeedback_binarized \
     --dataset_train_split "train_prefs" \
     --dataset_test_split "test_prefs" \
-    --output_dir logs/rloo-paired \
+    --output_dir logs/rloo-unpaired \
     --torch_dtype bfloat16 \
     --attn_implementation flash_attention_2 \
     --num_ppo_epochs 1 \

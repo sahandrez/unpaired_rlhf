@@ -1,19 +1,23 @@
-# KTO with paired feedback (full training)
-# Tested with 
+# KTO with unpaired feedback (full training)
+# Dataset options: 
+#   * sahandrez/ultrafeedback_kto
+# Model options:
+#   * Qwen/Qwen2.5-1.5B
+#   * sahandrez/Qwen2.5-1.5B-sft-uf
 
 python kto.py \
-    --model_name_or_path sahandrez/sft-gemma-2-2b-ultrafeedback \
+    --model_name_or_path sahandrez/Qwen2.5-1.5B-sft-uf \
     --dataset_name sahandrez/ultrafeedback_kto \
     --dataset_train_split "train" \
     --dataset_test_split "test" \
     --output_dir logs/kto \
     --per_device_train_batch_size 2 \
-    --per_device_eval_batch_size 2 \
+    --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 16 \
     --num_train_epochs 1 \
     --learning_rate 5.0e-6 \
     --torch_dtype bfloat16 \
-    --attn_implementation eager \
+    --attn_implementation flash_attention_2 \
     --max_length 2048 \
     --max_prompt_length 512 \
     --optim adamw_torch \

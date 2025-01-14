@@ -1,5 +1,8 @@
-# KTO with paired feedback with QLoRA
-# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
+# KTO with unpaired feedback with QLoRA
+# Dataset options: 
+#   * sahandrez/ultrafeedback_kto
+# Model options:
+#   * alignment-handbook/zephyr-7b-sft-qlora
 
 python kto.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \

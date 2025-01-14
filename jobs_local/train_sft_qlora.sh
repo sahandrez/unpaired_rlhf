@@ -1,6 +1,6 @@
-# SFT full training onn RLHF dataset
+# SFT full training
 # Dataset options: 
-#   * trl-lib/ultrafeedback_binarized (train, test)
+#   * HuggingFaceH4/ultrafeedback_binarized (train_prefs, test_prefs)
 # Model options:
 #   * alignment-handbook/zephyr-7b-sft-qlora
 

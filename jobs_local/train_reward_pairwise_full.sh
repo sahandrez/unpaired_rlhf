@@ -3,9 +3,10 @@
 #   * trl-lib/ultrafeedback_binarized (train, test)
 # Model options:
 #   * Qwen/Qwen2.5-1.5B
+#   * sahandrez/Qwen2.5-1.5B-sft-uf
 
 python pairwise_reward_model.py \
-    --model_name_or_path Qwen/Qwen2.5-1.5B \
+    --model_name_or_path sahandrez/Qwen2.5-1.5B-sft-uf \
     --dataset_name trl-lib/ultrafeedback_binarized  \
     --dataset_train_split train \
     --dataset_test_split test \

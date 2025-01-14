@@ -1,5 +1,8 @@
 # Trains a pointwise reward model with QLoRA
-# Tested with alignment-handbook/zephyr-7b-sft-qlora on a single A100 GPU
+# Dataset options: 
+#   * sahandrez/ultrafeedback_unpaired (train, test)
+# Model options:
+#   * alignment-handbook/zephyr-7b-sft-qlora
 
 python pointwise_reward_model.py \
     --model_name_or_path alignment-handbook/zephyr-7b-sft-qlora \
@@ -12,12 +15,11 @@ python pointwise_reward_model.py \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 64 \
     --gradient_accumulation_steps 1 \
+    --gradient_checkpointing \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
     --max_length 2048 \
     --remove_unused_columns False \
-    --optim adamw_torch \
-    --gradient_checkpointing \
     --logging_steps 10 \
     --eval_strategy steps \
     --eval_steps 200 \

@@ -1,11 +1,13 @@
-trl==0.12.1
-transformers
+trl==0.13.0
+transformers==4.48.0
+evaluate==0.4.3
 peft==0.13.2
 datasets==3.1.0
+accelerate==1.0.0rc1
 vllm==0.5.4
 numpy==1.26.4
 deepspeed==0.14.4
 bitsandbytes==0.41.1
-accelerate==1.0.0rc1
 wandb==0.13.11
 flash_attn==2.6.3
+scikit-learn==1.6.1
