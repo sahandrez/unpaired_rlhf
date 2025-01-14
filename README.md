@@ -1,7 +1,9 @@
 # Unpaired RLHF
-This codebase explores Reinforcement Learning with Human Feedback (RLHF) using unpaired preferences. 
+* This codebase explores Reinforcement Learning with Human Feedback (RLHF) using unpaired preferences. 
 Unlike the standard approach, where preferences are determined by comparing two prompt completions, 
 we fine-tune the model based on preferences expressed as thumbs-up or thumbs-down ratings.
+
+* To do so, we implement a [pointwise reward model](pointwise_reward_model.py) and an [unpaired RLOO trainer](unpaired_rlhf/trainer/unpaired_rloo_trainer.py). 
 
 ## Usages
 * Install the requirements from `requirements.txt`. 
@@ -52,7 +54,7 @@ bash jobs_local/train_reward_pointwise_qlora.sh
 # Full training of unpaired RLOO of Qwen2.5-1.5B
 bash jobs_local/train_rloo_unpaired_full.sh
 
-# QLoRA training of poinunpairedtwise RLOO of Zephyr-7b
+# QLoRA training of unpaired RLOO of Zephyr-7b
 bash jobs_local/train_rloo_unpaired_qlora.sh
 ```
 
