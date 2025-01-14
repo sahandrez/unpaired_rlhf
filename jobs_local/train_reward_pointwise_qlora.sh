@@ -15,12 +15,11 @@ python pointwise_reward_model.py \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 64 \
     --gradient_accumulation_steps 1 \
+    --gradient_checkpointing \
     --num_train_epochs 1 \
     --learning_rate 1.5e-5 \
     --max_length 2048 \
     --remove_unused_columns False \
-    --optim adamw_torch \
-    --gradient_checkpointing \
     --logging_steps 10 \
     --eval_strategy steps \
     --eval_steps 200 \

@@ -8,6 +8,7 @@ https://github.com/huggingface/trl/blob/v0.13.0/examples/scripts/rloo/rloo.py
 import logging
 import time
 import wandb
+from dataclasses import dataclass
 
 from accelerate import PartialState
 from datasets import load_dataset
@@ -29,6 +30,7 @@ from trl import (
 )
 from trl.trainer.utils import SIMPLE_CHAT_TEMPLATE
 
+from unpaired_rlhf.trainer.unpaired_rloo_trainer import UnpairedRLOOTrainer
 from unpaired_rlhf.trainer.utils import wrap_peft
 from unpaired_rlhf.utils.runtime import set_seed
 
@@ -38,9 +40,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class AdditionalArguments:
+    """Additional arguments for the RLOO script."""
+
+    unpaired: bool = False
+
+
 if __name__ == "__main__":
-    parser = HfArgumentParser((ScriptArguments, RLOOConfig, ModelConfig))
-    script_args, training_args, model_args = parser.parse_args_into_dataclasses()
+    parser = HfArgumentParser(
+        (AdditionalArguments, ScriptArguments, RLOOConfig, ModelConfig)
+    )
+    addtional_args, script_args, training_args, model_args = (
+        parser.parse_args_into_dataclasses()
+    )
 
     # Add dataset name and a timestamp to the output directory
     training_args.output_dir += f"-{model_args.model_name_or_path.split('/')[-1]}-{script_args.dataset_name.split('/')[-1]}-{time.strftime('%Y%m%d_%H%M%S')}"
@@ -54,9 +67,13 @@ if __name__ == "__main__":
     # Set seed everywhere
     set_seed(training_args.seed)
 
-    # TODO: Unpaired or paired feedback setup
-    trainer_cls = RLOOTrainer
-    num_labels = 1
+    # Unpaired or paired feedback setup
+    if addtional_args.unpaired:
+        trainer_cls = UnpairedRLOOTrainer
+        num_labels = 2
+    else:
+        trainer_cls = RLOOTrainer
+        num_labels = 1
 
     ################
     # Model & Tokenizer
@@ -139,7 +156,7 @@ if __name__ == "__main__":
     logger.info("Starting training...")
     trainer = trainer_cls(
         config=training_args,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         policy=policy,
         ref_policy=ref_policy,
         reward_model=reward_model,
